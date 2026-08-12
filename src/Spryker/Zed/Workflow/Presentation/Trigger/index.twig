@@ -1,0 +1,46 @@
+{% extends '@Gui/Layout/layout.twig' %}
+
+{% set widget_title = 'Triggers' | trans %}
+{% block section_title %}
+    {{ widget_title }}
+    {% include '@Workflow/_partial/status-badge.twig' %}
+{% endblock %}
+
+{% block action %}
+    <a class="btn btn-back" href="{{ url('/workflow/process') }}">
+        <span class="material-symbols-outlined">chevron_left</span> {{ 'Back to workflows' | trans }}
+    </a>
+{% endblock %}
+
+{% block content %}
+    {% include '@Workflow/_partial/workflow-setup-info.twig' %}
+    
+    {% embed '@Gui/Partials/widget.twig' with { widget_title: 'Workflow Triggers' | trans } %}
+        {% block widget_content %}
+            {% if processName %}
+                <div class="workflow-parent-context m-b-md">
+                    <span class="text-muted">
+                        <span class="material-symbols-outlined align-middle">flowchart</span> {{ 'Workflow' | trans }}
+                    </span>
+                    <span class="label label-info m-l-xs">{{ processName }}</span>
+                </div>
+            {% endif %}
+
+            <p>{{ 'Select events that start this workflow.' | trans }}</p>
+            {{ form_start(triggerForm, {'attr': {'class': 'js-trigger-form', 'data-qa': 'workflow-trigger-form'}}) }}
+                {{ form_row(triggerForm.idStateMachineProcess) }}
+                {% if hasAvailableEvents %}
+                    {{ form_row(triggerForm.eventNames) }}
+                    <button type="submit" class="btn btn-primary" data-qa="workflow-trigger-save">{{ 'Save Triggers' | trans }}</button>
+                {% else %}
+                    <p>{{ 'No registered trigger events for this subject type.' | trans }}</p>
+                {% endif %}
+            {{ form_end(triggerForm) }}
+        {% endblock %}
+    {% endembed %}
+{% endblock %}
+
+{% block footer_js %}
+    {{ parent() }}
+    <script src="{{ assetsPath('js/spryker-zed-workflow-main.js') }}"></script>
+{% endblock %}

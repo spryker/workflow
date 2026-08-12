@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<config>
+    <maintenance>
+        <pages>
+            <workflows>
+                <label>Workflows</label>
+                <title>Workflows</title>
+                <bundle>workflow</bundle>
+                <controller>process</controller>
+                <action>index</action>
+                <pages>
+                    <workflow-versions>
+                        <label>Workflow Versions</label>
+                        <title>Workflow Versions</title>
+                        <bundle>workflow</bundle>
+                        <controller>version</controller>
+                        <action>index</action>
+                        <visible>0</visible>
+                        <pages>
+                            <workflow-instances>
+                                <label>Workflow Instances</label>
+                                <title>Workflow Instances</title>
+                                <bundle>workflow</bundle>
+                                <controller>instance</controller>
+                                <action>index</action>
+                                <visible>0</visible>
+                            </workflow-instances>
+                        </pages>
+                    </workflow-versions>
+
+                    <workflow-triggers>
+                        <label>Workflow Triggers</label>
+                        <title>Workflow Triggers</title>
+                        <bundle>workflow</bundle>
+                        <controller>trigger</controller>
+                        <action>index</action>
+                        <visible>0</visible>
+                    </workflow-triggers>
+                </pages>
+            </workflows>
+        </pages>
+    </maintenance>
+</config>

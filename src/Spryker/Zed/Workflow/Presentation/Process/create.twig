@@ -1,0 +1,26 @@
+{% extends '@Gui/Layout/layout.twig' %}
+
+{% set widget_title = 'Workflows' | trans %}
+{% block section_title %}
+    {{ widget_title }}
+    {% include '@Workflow/_partial/status-badge.twig' %}
+{% endblock %}
+
+{% block action %}
+    <a class="btn btn-back" href="{{ url('/workflow/process') }}">
+        <span class="material-symbols-outlined">chevron_left</span> {{ 'Back to workflows' | trans }}
+    </a>
+{% endblock %}
+
+{% block content %}
+    {% embed '@Gui/Partials/widget.twig' with { widget_title: 'Create Workflow' | trans } %}
+        {% block widget_content %}
+            {{ form_start(processForm, {'attr': {'data-qa': 'workflow-process-form'}}) }}
+                {{ form_row(processForm.name) }}
+                {{ form_row(processForm.subjectType) }}
+                {{ form_row(processForm.description) }}
+                <button type="submit" class="btn btn-primary" data-qa="workflow-process-save">{{ 'Save' | trans }}</button>
+            {{ form_end(processForm) }}
+        {% endblock %}
+    {% endembed %}
+{% endblock %}

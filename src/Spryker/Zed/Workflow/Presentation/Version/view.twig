@@ -1,0 +1,48 @@
+{% extends '@Gui/Layout/layout.twig' %}
+
+{% set widget_title = 'Version ' ~ version %}
+{% block section_title %}
+    {{ widget_title }}
+    {% include '@Workflow/_partial/status-badge.twig' %}
+{% endblock %}
+
+{% block action %}
+    <a class="btn btn-back" href="{{ backUrl }}">
+        <span class="material-symbols-outlined">chevron_left</span> {{ backLabel | trans }}
+    </a>
+    {% if isActive %}
+        {{ form_start(versionActivationForm, {action: url('/workflow/version/deactivate', {'id-definition': idStateMachineProcessDefinition}), method: 'POST', attr: {class: 'd-inline'}}) }}
+            <button type="submit" class="btn btn-danger">{{ 'Deactivate' | trans }}</button>
+        {{ form_end(versionActivationForm) }}
+    {% else %}
+        {{ form_start(versionActivationForm, {action: url('/workflow/version/activate', {'id-definition': idStateMachineProcessDefinition}), method: 'POST', attr: {class: 'd-inline'}}) }}
+            <button type="submit" class="btn btn-primary">{{ 'Activate' | trans }}</button>
+        {{ form_end(versionActivationForm) }}
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {% embed '@Gui/Partials/widget.twig' with { widget_title: 'Workflow graph' | trans } %}
+        {% block widget_content %}
+            <div class="workflow-parent-context m-b-md">
+                <span class="text-muted">
+                    <span class="material-symbols-outlined align-middle">flowchart</span> {{ 'Workflow' | trans }}
+                </span>
+                <span class="label label-info m-l-xs">{{ processName }}</span>
+                <span class="text-muted m-l-sm">{{ 'Version' | trans }}</span>
+                <span class="label label-default m-l-xs">{{ version }}</span>
+                <span class="text-muted m-l-sm">{{ 'Status' | trans }}</span>
+                <span class="label label-default m-l-xs">{{ status }}</span>
+            </div>
+            <img class="preview-image"
+                 src="{{ url('/state-machine/graph/draw', {process: processName, version: version, 'state-machine': stateMachineName}) }}"
+                 alt="{{ processName }}">
+        {% endblock %}
+    {% endembed %}
+
+    {% embed '@Gui/Partials/widget.twig' with { widget_title: 'Definition' | trans } %}
+        {% block widget_content %}
+            <pre>{{ definition }}</pre>
+        {% endblock %}
+    {% endembed %}
+{% endblock %}

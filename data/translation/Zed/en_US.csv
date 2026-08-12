@@ -1,0 +1,99 @@
+Workflows,Workflows
+"Workflow Versions","Workflow Versions"
+"Workflow Triggers","Workflow Triggers"
+"Workflow Instances","Workflow Instances"
+"Create Workflow","Create Workflow"
+"Create Version","Create Version"
+Workflow,Workflow
+"Subject Type","Subject Type"
+"Subject type","Subject type"
+Status,Status
+Actions,Actions
+Versions,Versions
+Triggers,Triggers
+Version,Version
+"Initial State","Initial State"
+"Initial state","Initial state"
+Activate,Activate
+Deactivate,Deactivate
+Instances,Instances
+Save,Save
+"Save Triggers","Save Triggers"
+"Select events that start this workflow.","Select events that start this workflow."
+"No registered trigger events for this subject type.","No registered trigger events for this subject type."
+"Trigger events","Trigger events"
+Identifier,Identifier
+"Subject Identifier","Subject Identifier"
+"Current State Id","Current State Id"
+"State machine name","State machine name"
+"Workflow name","Workflow name"
+Description,Description
+"Definition (state-machine-01 XML)","Definition (state-machine-01 XML)"
+"The workflow was created.","The workflow was created."
+"The version was saved.","The version was saved."
+"The version was not found.","The version was not found."
+"The version was activated.","The version was activated."
+"The version was deactivated.","The version was deactivated."
+"The triggers were saved.","The triggers were saved."
+"Definition activation rejected: the definition is invalid.","Definition activation rejected: the definition is invalid."
+"Current State","Current State"
+"State Machines","State Machines"
+"State Machine","State Machine"
+"Workflow Processes","Workflow Processes"
+"Create new state machine","Create new state machine"
+Processes,Processes
+Active,Active
+Inactive,Inactive
+"Back to state machines","Back to state machines"
+"Back to workflows","Back to workflows"
+"Back to versions","Back to versions"
+"Back to instances","Back to instances"
+"Back to workflow instances","Back to workflow instances"
+"State machine graph","State machine graph"
+"Workflow graph","Workflow graph"
+Definition,Definition
+Back,Back
+"State machine:","State machine:"
+"Name the state machine, then create its first process.","Name the state machine, then create its first process."
+Continue,Continue
+"Select a state machine","Select a state machine"
+"The workflow was activated.","The workflow was activated."
+"The workflow was deactivated.","The workflow was deactivated."
+"Validate definition","Validate definition"
+Validating…,Validating…
+"The definition is valid.","The definition is valid."
+"Validation request failed. Please try again.","Validation request failed. Please try again."
+"The definition has the following errors:","The definition has the following errors:"
+"The currently active version %active% will be deactivated.","The currently active version %active% will be deactivated."
+"Activate version %target% as the primary version?","Activate version %target% as the primary version?"
+"Manual events","Manual events"
+"No manual events are available from the current state.","No manual events are available from the current state."
+"Trigger a manual event to move this instance to the next state.","Trigger a manual event to move this instance to the next state."
+"Transition history","Transition history"
+"No transitions have been recorded for this instance yet.","No transitions have been recorded for this instance yet."
+State,State
+Date,Date
+#,#
+"You are about to create an editable copy of this workflow. Your changes are saved as a new version - the current one keeps running. Continue?","You are about to create an editable copy of this workflow. Your changes are saved as a new version - the current one keeps running. Continue?"
+Delete,Delete
+"The version was deleted.","The version was deleted."
+"This permanently deletes this version. It has no instances, so nothing running is affected. Delete it?","This permanently deletes this version. It has no instances, so nothing running is affected. Delete it?"
+"The active version cannot be deleted. Deactivate it first.","The active version cannot be deleted. Deactivate it first."
+"The version cannot be deleted because it has running instances.","The version cannot be deleted because it has running instances."
+"Set up a workflow in 3 steps","Set up a workflow in 3 steps"
+"Automate what happens after an event fires.","Automate what happens after an event fires."
+"Create a process","Create a process"
+"Pick the object it runs on — e.g. a Customer or Order.","Pick the object it runs on — e.g. a Customer or Order."
+"Add a version","Add a version"
+"Design the states and transitions, then save a version.","Design the states and transitions, then save a version."
+"Set triggers & activate","Set triggers & activate"
+"Choose the event that starts it, then switch it to Active.","Choose the event that starts it, then switch it to Active."
+"Show how this works","Show how this works"
+"Activate version","Activate version"
+Cancel,Cancel
+"Create an editable copy","Create an editable copy"
+"Delete version","Delete version"
+"The name may only contain letters, numbers, spaces, hyphens and underscores.","The name may only contain letters, numbers, spaces, hyphens and underscores."
+"Could not trigger the event.","Could not trigger the event."
+"The event ""%event%"" was triggered.","The event ""%event%"" was triggered."
+"The instance was not found.","The instance was not found."

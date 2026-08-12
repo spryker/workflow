@@ -1,0 +1,51 @@
+{% extends '@Gui/Layout/layout.twig' %}
+
+{% set widget_title = 'Workflow Versions' | trans %}
+{% block section_title %}
+    {{ widget_title }}
+    {% include '@Workflow/_partial/status-badge.twig' %}
+{% endblock %}
+
+{% block action %}
+    <a class="btn btn-back" href="{{ url('/workflow/version', {'id-process': idStateMachineProcess}) }}">
+        <span class="material-symbols-outlined">chevron_left</span> {{ 'Back to versions' | trans }}
+    </a>
+{% endblock %}
+
+{% block content %}
+    {% embed '@Gui/Partials/widget.twig' with { widget_title: 'Create Version' | trans } %}
+        {% block widget_content %}
+            {% if processName %}
+                <div class="workflow-parent-context m-b-md">
+                    <span class="text-muted">
+                        <span class="material-symbols-outlined align-middle">flowchart</span> {{ 'Workflow' | trans }}
+                    </span>
+                    <span class="label label-info m-l-xs">{{ processName }}</span>
+                </div>
+            {% endif %}
+
+            <div class="js-definition-validation-result" data-qa="workflow-definition-validation-result"></div>
+            {{ form_start(versionForm, {'attr': {'class': 'js-version-form', 'data-qa': 'workflow-version-form'}}) }}
+                {{ form_row(versionForm.idStateMachineProcess) }}
+                {{ form_row(versionForm.initialState) }}
+                {{ form_row(versionForm.definition) }}
+                <button type="button"
+                        class="btn btn-secondary js-validate-definition-button"
+                        data-qa="workflow-validate-definition"
+                        data-validate-url="{{ url('/workflow/version/validate-definition') }}"
+                        data-message-validating="{{ 'Validating…' | trans }}"
+                        data-message-valid="{{ 'The definition is valid.' | trans }}"
+                        data-message-failed="{{ 'Validation request failed. Please try again.' | trans }}"
+                        data-message-heading="{{ 'The definition has the following errors:' | trans }}">
+                    {{ 'Validate definition' | trans }}
+                </button>
+                <button type="submit" class="btn btn-primary" data-qa="workflow-version-save">{{ 'Save' | trans }}</button>
+            {{ form_end(versionForm) }}
+        {% endblock %}
+    {% endembed %}
+{% endblock %}
+
+{% block footer_js %}
+    {{ parent() }}
+    <script src="{{ assetsPath('js/spryker-zed-workflow-main.js') }}"></script>
+{% endblock %}

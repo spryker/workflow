@@ -1,0 +1,18 @@
+<?php
+
+/**
+ * Copyright © 2016-present Spryker Systems GmbH. All rights reserved.
+ * Use of this software requires acceptance of the Evaluation License Agreement. See LICENSE file.
+ */
+
+namespace Spryker\Zed\Workflow\Business\Trigger;
+
+use Generated\Shared\Transfer\StateMachineEventTriggerRequestTransfer;
+use Generated\Shared\Transfer\StateMachineEventTriggerResponseTransfer;
+
+interface StateMachineInstanceEventTriggerInterface
+{
+    public function triggerTransitionEventForRunningInstance(
+        StateMachineEventTriggerRequestTransfer $stateMachineEventTriggerRequestTransfer
+    ): StateMachineEventTriggerResponseTransfer;
+}

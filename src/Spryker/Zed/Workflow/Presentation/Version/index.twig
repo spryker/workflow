@@ -1,0 +1,41 @@
+{% extends '@Gui/Layout/layout.twig' %}
+
+{% set widget_title = 'Workflow Versions' | trans %}
+{% block section_title %}
+    {{ widget_title }}
+    {% include '@Workflow/_partial/status-badge.twig' %}
+{% endblock %}
+
+{% block action %}
+    <a class="btn btn-back" href="{{ url('/workflow/process') }}">
+        <span class="material-symbols-outlined">chevron_left</span> {{ 'Back to workflows' | trans }}
+    </a>
+    {{ createActionButton('/workflow/version/create?id-process=' ~ idStateMachineProcess, 'Create Version' | trans) }}
+{% endblock %}
+
+{% block content %}
+    {% include '@Workflow/_partial/workflow-setup-info.twig' %}
+
+    {% embed '@Gui/Partials/widget.twig' with { widget_title: widget_title } %}
+        {% block widget_content %}
+            {% if processName %}
+                <div class="workflow-parent-context m-b-md">
+                    <span class="text-muted">
+                        <span class="material-symbols-outlined align-middle">flowchart</span> {{ 'Workflow' | trans }}
+                    </span>
+                    <span class="label label-info m-l-xs">{{ processName }}</span>
+                </div>
+            {% endif %}
+
+            {{ versionTable | raw }}
+        {% endblock %}
+    {% endembed %}
+
+    {% include '@Workflow/_partial/version-activation-confirmation-modal.twig' %}
+    {% include '@Workflow/_partial/action-confirmation-modal.twig' %}
+{% endblock %}
+
+{% block footer_js %}
+    {{ parent() }}
+    <script src="{{ assetsPath('js/spryker-zed-workflow-main.js') }}"></script>
+{% endblock %}

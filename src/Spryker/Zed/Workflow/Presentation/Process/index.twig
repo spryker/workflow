@@ -1,0 +1,26 @@
+{% extends '@Gui/Layout/layout.twig' %}
+
+{% set widget_title = 'Workflows' | trans %}
+{% block section_title %}
+    {{ widget_title }}
+    {% include '@Workflow/_partial/status-badge.twig' %}
+{% endblock %}
+
+{% block action %}
+    {{ createActionButton('/workflow/process/create', 'Create Workflow' | trans) }}
+{% endblock %}
+
+{% block content %}
+    {% include '@Workflow/_partial/workflow-setup-info.twig' %}
+    
+    {% embed '@Gui/Partials/widget.twig' with { widget_title: widget_title } %}
+        {% block widget_content %}
+            {{ processTable | raw }}
+        {% endblock %}
+    {% endembed %}
+{% endblock %}
+
+{% block footer_js %}
+    {{ parent() }}
+    <script src="{{ assetsPath('js/spryker-zed-workflow-main.js') }}"></script>
+{% endblock %}

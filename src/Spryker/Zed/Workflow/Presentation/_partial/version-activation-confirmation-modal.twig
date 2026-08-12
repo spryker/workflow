@@ -1,0 +1,23 @@
+{% set content %}
+    <p class="js-version-activation-question"
+       data-message-template="{{ 'Activate version %target% as the primary version?' | trans }}"></p>
+    <p class="js-version-activation-warning text-body-secondary"
+       data-message-template="{{ 'The currently active version %active% will be deactivated.' | trans }}"></p>
+{% endset %}
+
+{% set footer %}
+    <button type="button" class="btn btn-primary js-version-activation-confirm-button" data-qa="workflow-version-activation-confirm">
+        {{ 'Activate' | trans }}
+    </button>
+    <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">
+        {{ 'Cancel' | trans }}
+    </button>
+{% endset %}
+
+{% include '@Gui/Modal/modal.twig' with {
+    id: 'version-activation-confirmation-modal',
+    extras: 'data-qa=version-activation-confirmation-modal',
+    title: 'Activate version' | trans,
+    content: content,
+    footer: footer
+} %}

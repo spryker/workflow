@@ -1,0 +1,30 @@
+{% extends '@Gui/Layout/layout.twig' %}
+
+{% set widget_title = 'Workflow Instances' | trans %}
+{% block section_title %}
+    {{ widget_title }}
+    {% include '@Workflow/_partial/status-badge.twig' %}
+{% endblock %}
+
+{% block action %}
+    <a class="btn btn-back" href="{{ idStateMachineProcess ? url('/workflow/version', {'id-process': idStateMachineProcess}) : url('/workflow/process') }}">
+        <span class="material-symbols-outlined">chevron_left</span> {{ 'Back to versions' | trans }}
+    </a>
+{% endblock %}
+
+{% block content %}
+    {% embed '@Gui/Partials/widget.twig' with { widget_title: widget_title } %}
+        {% block widget_content %}
+            {% if processName %}
+                <div class="workflow-parent-context m-b-md">
+                    <span class="text-muted">
+                        <span class="material-symbols-outlined align-middle">flowchart</span> {{ 'Workflow' | trans }}
+                    </span>
+                    <span class="label label-info m-l-xs">{{ processName }}</span>
+                </div>
+            {% endif %}
+
+            {{ instanceTable | raw }}
+        {% endblock %}
+    {% endembed %}
+{% endblock %}

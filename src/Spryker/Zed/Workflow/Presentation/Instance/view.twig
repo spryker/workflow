@@ -1,0 +1,78 @@
+{% extends '@Gui/Layout/layout.twig' %}
+
+{% set widget_title = 'Workflow instance ' ~ identifier %}
+{% block section_title %}
+    {{ widget_title }}
+    {% include '@Workflow/_partial/status-badge.twig' %}
+{% endblock %}
+
+{% block action %}
+    <a class="btn btn-back" href="{{ url('/workflow/instance', {'id-definition': idStateMachineProcessDefinition}) }}">
+        <span class="material-symbols-outlined">chevron_left</span> {{ 'Back to workflow instances' | trans }}
+    </a>
+{% endblock %}
+
+{% block content %}
+    {% embed '@Gui/Partials/widget.twig' with { widget_title: 'Workflow graph' | trans } %}
+        {% block widget_content %}
+            <div class="workflow-parent-context m-b-md">
+                <span class="text-muted">
+                    <span class="material-symbols-outlined align-middle">flowchart</span> {{ 'Workflow' | trans }}
+                </span>
+                <span class="label label-info m-l-xs">{{ processName }}</span>
+                <span class="text-muted m-l-sm">{{ 'Version' | trans }}</span>
+                <span class="label label-default m-l-xs">{{ version }}</span>
+                <span class="text-muted m-l-sm">{{ 'Subject Identifier' | trans }}</span>
+                <span class="label label-default m-l-xs">{{ identifier }}</span>
+                <span class="text-muted m-l-sm">{{ 'Current State' | trans }}</span>
+                <span class="label label-primary m-l-xs">{{ currentState | default('-') }}</span>
+            </div>
+            <img class="preview-image"
+                 src="{{ url('/state-machine/graph/draw', {process: processName, version: version, 'state-machine': stateMachineName, 'highlight-state': currentState}) }}"
+                 alt="{{ processName }}">
+        {% endblock %}
+    {% endembed %}
+
+    {% embed '@Gui/Partials/widget.twig' with { widget_title: 'Manual events' | trans } %}
+        {% block widget_content %}
+            {% if manualEvents is empty %}
+                <p>{{ 'No manual events are available from the current state.' | trans }}</p>
+            {% else %}
+                <p>{{ 'Trigger a manual event to move this instance to the next state.' | trans }}</p>
+                {% for eventName in manualEvents %}
+                    <a class="btn btn-create"
+                       href="{{ url('/workflow/instance/trigger', {'id-definition': idStateMachineProcessDefinition, 'identifier': identifier, 'event': eventName}) }}">
+                        <span class="material-symbols-outlined">play_arrow</span> {{ eventName }}
+                    </a>
+                {% endfor %}
+            {% endif %}
+        {% endblock %}
+    {% endembed %}
+
+    {% embed '@Gui/Partials/widget.twig' with { widget_title: 'Transition history' | trans } %}
+        {% block widget_content %}
+            {% if transitionHistory is empty %}
+                <p>{{ 'No transitions have been recorded for this instance yet.' | trans }}</p>
+            {% else %}
+                <table class="table table-striped table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>{{ '#' | trans }}</th>
+                            <th>{{ 'State' | trans }}</th>
+                            <th>{{ 'Date' | trans }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transition in transitionHistory %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ transition.stateName }}</td>
+                                <td>{{ transition.createdAt is not empty ? transition.createdAt | date('Y-m-d H:i:s') : '-' }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        {% endblock %}
+    {% endembed %}
+{% endblock %}

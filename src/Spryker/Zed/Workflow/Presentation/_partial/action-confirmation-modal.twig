@@ -1,0 +1,26 @@
+{#
+    Generic confirmation modal for table action links.
+
+    A link opts in by carrying data-confirm="1" plus data-confirm-title, data-confirm-message and
+    data-confirm-button. Those values arrive already translated from the table, so the title, message
+    and confirm label are filled in by JavaScript when the modal opens. Another action can start
+    asking for confirmation by adding the attributes only - no change here or in the JavaScript.
+#}
+{% set content %}
+    <p class="js-action-confirmation-message"></p>
+{% endset %}
+
+{% set footer %}
+    <button type="button" class="btn btn-primary js-action-confirmation-confirm-button"></button>
+    <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">
+        {{ 'Cancel' | trans }}
+    </button>
+{% endset %}
+
+{% include '@Gui/Modal/modal.twig' with {
+    id: 'action-confirmation-modal',
+    extras: 'data-qa=action-confirmation-modal',
+    title: '',
+    content: content,
+    footer: footer
+} %}

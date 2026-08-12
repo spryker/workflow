@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<database xmlns="spryker:schema-01" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="zed" xsi:schemaLocation="spryker:schema-01 https://static.spryker.com/schema-01.xsd" namespace="Orm\Zed\StateMachine\Persistence" package="src.Orm.Zed.StateMachine.Persistence">
+
+    <table name="spy_state_machine_process" identifierQuoting="true">
+        <column name="type" type="VARCHAR" size="32" required="false" description="Definition source of the process: NULL = file-based (core), 'database' = DB-authored. Extensible to future sources."/>
+        <column name="subject_type" type="VARCHAR" size="255" required="false" description="Immutable subject type of a workflow, e.g. spy_customer."/>
+        <column name="status" type="VARCHAR" size="32" required="false" description="Process-level status of a workflow: active|inactive."/>
+        <column name="description" type="VARCHAR" size="255" required="false" description="Human-readable description of a workflow."/>
+
+        <index name="spy_state_machine_process-type">
+            <index-column name="type"/>
+        </index>
+
+        <index name="spy_state_machine_process-subject_type">
+            <index-column name="subject_type"/>
+        </index>
+    </table>
+
+</database>

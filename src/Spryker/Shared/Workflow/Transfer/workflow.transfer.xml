@@ -1,0 +1,254 @@
+<?xml version="1.0"?>
+<transfers xmlns="spryker:transfer-01" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="spryker:transfer-01 http://static.spryker.com/transfer-01.xsd">
+
+    <transfer name="StateMachineProcess">
+        <property name="processName" type="string"/>
+        <property name="stateMachineName" type="string"/>
+        <property name="idStateMachineProcess" type="int"/>
+        <property name="subjectType" type="string"/>
+        <property name="status" type="string"/>
+        <property name="description" type="string"/>
+    </transfer>
+
+    <transfer name="StateMachineItem">
+        <property name="identifier" type="int"/>
+        <property name="idStateMachineProcess" type="int"/>
+        <property name="idItemState" type="int"/>
+        <property name="processName" type="string"/>
+        <property name="stateMachineName" type="string"/>
+        <property name="stateName" type="string"/>
+        <property name="eventName" type="string"/>
+        <property name="createdAt" type="string"/>
+        <property name="stateMachineProcessDefinitionInstance" type="StateMachineProcessDefinitionInstance"/>
+    </transfer>
+
+    <transfer name="StateMachineProcessDefinition" strict="true">
+        <property name="idStateMachineProcessDefinition" type="int"/>
+        <property name="stateMachineProcess" type="StateMachineProcess"/>
+        <property name="uuid" type="string"/>
+        <property name="definition" type="string"/>
+        <property name="initialState" type="string"/>
+        <property name="version" type="int"/>
+        <property name="status" type="string"/>
+        <property name="user" type="User"/>
+        <property name="hasConditionTransitions" type="bool"/>
+        <property name="hasTimeoutTransitions" type="bool"/>
+        <property name="createdAt" type="string"/>
+        <property name="updatedAt" type="string"/>
+    </transfer>
+
+    <transfer name="StateMachineProcessDefinitionInstance" strict="true">
+        <property name="idStateMachineProcessDefinitionInstance" type="int"/>
+        <property name="stateMachineProcessDefinition" type="StateMachineProcessDefinition"/>
+        <property name="stateMachineItemState" type="StateMachineItemState"/>
+        <property name="uuid" type="string"/>
+        <property name="identifier" type="int"/>
+        <property name="finishedAt" type="string"/>
+        <property name="createdAt" type="string"/>
+        <property name="updatedAt" type="string"/>
+    </transfer>
+
+    <transfer name="StateMachineDefinitionTrigger" strict="true">
+        <property name="idStateMachineProcessDefinitionTrigger" type="int"/>
+        <property name="eventName" type="string"/>
+        <property name="stateMachineProcess" type="StateMachineProcess"/>
+    </transfer>
+
+    <transfer name="StateMachineEventTriggerRequest" strict="true">
+        <property name="eventName" type="string"/>
+        <property name="subjectType" type="string"/>
+        <property name="identifier" type="int"/>
+        <property name="identifiers" type="int[]" singular="identifier"/>
+        <property name="stateMachineProcessDefinition" type="StateMachineProcessDefinition"/>
+    </transfer>
+
+    <transfer name="StateMachineEventTriggerResponse" strict="true">
+        <property name="affectedItemCount" type="int"/>
+        <property name="errors" type="Error[]" singular="error"/>
+    </transfer>
+
+    <transfer name="StateMachineDefinitionValidationResponse" strict="true">
+        <property name="isValid" type="bool"/>
+        <property name="errors" type="StateMachineDefinitionValidationError[]" singular="error"/>
+    </transfer>
+
+    <transfer name="StateMachineDefinitionValidationError" strict="true">
+        <property name="message" type="string"/>
+        <property name="type" type="string"/>
+        <property name="stateName" type="string"/>
+        <property name="eventName" type="string"/>
+    </transfer>
+
+    <transfer name="StateMachineProcessConditions" strict="true">
+        <property name="stateMachineProcessIds" type="int[]" singular="idStateMachineProcess"/>
+        <property name="stateMachineNames" type="string[]" singular="stateMachineName"/>
+        <property name="subjectTypes" type="string[]" singular="subjectType"/>
+        <property name="statuses" type="string[]" singular="status"/>
+    </transfer>
+
+    <transfer name="StateMachineProcessCriteria">
+        <property name="idStateMachineProcess" type="int"/>
+        <property name="stateMachineProcessConditions" type="StateMachineProcessConditions"/>
+        <property name="sortCollection" type="Sort[]" singular="sort"/>
+        <property name="pagination" type="Pagination"/>
+    </transfer>
+
+    <transfer name="StateMachineProcessCollection" strict="true">
+        <property name="stateMachineProcesses" type="StateMachineProcess[]" singular="stateMachineProcess"/>
+        <property name="pagination" type="Pagination"/>
+    </transfer>
+
+    <transfer name="StateMachineProcessDefinitionConditions" strict="true">
+        <property name="stateMachineProcessDefinitionIds" type="int[]" singular="idStateMachineProcessDefinition"/>
+        <property name="stateMachineProcessIds" type="int[]" singular="idStateMachineProcess"/>
+        <property name="statuses" type="string[]" singular="status"/>
+        <property name="versions" type="int[]" singular="version"/>
+        <property name="hasConditionTransitions" type="bool"/>
+        <property name="hasTimeoutTransitions" type="bool"/>
+        <property name="hasInstances" type="bool"/>
+        <property name="hasUnfinishedInstances" type="bool"/>
+    </transfer>
+
+    <transfer name="StateMachineProcessDefinitionCriteria" strict="true">
+        <property name="stateMachineProcessDefinitionConditions" type="StateMachineProcessDefinitionConditions"/>
+        <property name="sortCollection" type="Sort[]" singular="sort"/>
+        <property name="pagination" type="Pagination"/>
+    </transfer>
+
+    <transfer name="StateMachineProcessDefinitionCollection" strict="true">
+        <property name="stateMachineProcessDefinitions" type="StateMachineProcessDefinition[]" singular="stateMachineProcessDefinition"/>
+        <property name="pagination" type="Pagination"/>
+    </transfer>
+
+    <transfer name="StateMachineProcessDefinitionInstanceConditions" strict="true">
+        <property name="stateMachineProcessDefinitionInstanceIds" type="int[]" singular="idStateMachineProcessDefinitionInstance"/>
+        <property name="stateMachineProcessDefinitionIds" type="int[]" singular="idStateMachineProcessDefinition"/>
+        <property name="identifiers" type="int[]" singular="identifier"/>
+        <property name="stateMachineItemStateIds" type="int[]" singular="idStateMachineItemState"/>
+        <property name="withStateMachineItemState" type="bool"/>
+        <property name="withStateMachineProcessDefinition" type="bool"/>
+        <property name="withStateMachineProcess" type="bool"/>
+    </transfer>
+
+    <transfer name="StateMachineProcessDefinitionInstanceCriteria" strict="true">
+        <property name="stateMachineProcessDefinitionInstanceConditions" type="StateMachineProcessDefinitionInstanceConditions"/>
+        <property name="sortCollection" type="Sort[]" singular="sort"/>
+        <property name="pagination" type="Pagination"/>
+    </transfer>
+
+    <transfer name="StateMachineProcessDefinitionInstanceCollection" strict="true">
+        <property name="stateMachineProcessDefinitionInstances" type="StateMachineProcessDefinitionInstance[]" singular="stateMachineProcessDefinitionInstance"/>
+        <property name="pagination" type="Pagination"/>
+    </transfer>
+
+    <!-- Impl A: filter triggers by process, not by definition. -->
+    <transfer name="StateMachineDefinitionTriggerConditions" strict="true">
+        <property name="stateMachineProcessIds" type="int[]" singular="idStateMachineProcess"/>
+        <property name="eventNames" type="string[]" singular="eventName"/>
+    </transfer>
+
+    <transfer name="StateMachineDefinitionTriggerCriteria" strict="true">
+        <property name="stateMachineDefinitionTriggerConditions" type="StateMachineDefinitionTriggerConditions"/>
+        <property name="sortCollection" type="Sort[]" singular="sort"/>
+        <property name="pagination" type="Pagination"/>
+    </transfer>
+
+    <transfer name="StateMachineDefinitionTriggerCollection" strict="true">
+        <property name="stateMachineDefinitionTriggers" type="StateMachineDefinitionTrigger[]" singular="stateMachineDefinitionTrigger"/>
+        <property name="pagination" type="Pagination"/>
+    </transfer>
+
+    <transfer name="StateMachineTriggerEvent" strict="true">
+        <property name="eventName" type="string"/>
+        <property name="name" type="string"/>
+        <property name="description" type="string"/>
+        <property name="subjectType" type="string"/>
+    </transfer>
+
+    <transfer name="StateMachineTriggerEventConditions" strict="true">
+        <property name="stateMachineProcessIds" type="int[]" singular="idStateMachineProcess"/>
+    </transfer>
+
+    <transfer name="StateMachineTriggerEventCriteria" strict="true">
+        <property name="stateMachineTriggerEventConditions" type="StateMachineTriggerEventConditions"/>
+        <property name="sortCollection" type="Sort[]" singular="sort"/>
+        <property name="pagination" type="Pagination"/>
+    </transfer>
+
+    <transfer name="StateMachineTriggerEventCollection" strict="true">
+        <property name="stateMachineTriggerEvents" type="StateMachineTriggerEvent[]" singular="stateMachineTriggerEvent"/>
+        <property name="pagination" type="Pagination"/>
+    </transfer>
+
+    <transfer name="StateMachineProcessCollectionRequest" strict="true">
+        <property name="stateMachineProcesses" type="StateMachineProcess[]" singular="stateMachineProcess"/>
+        <property name="isTransactional" type="bool"/>
+    </transfer>
+
+    <transfer name="StateMachineProcessCollectionResponse" strict="true">
+        <property name="stateMachineProcesses" type="StateMachineProcess[]" singular="stateMachineProcess"/>
+        <property name="errors" type="Error[]" singular="error"/>
+    </transfer>
+
+    <transfer name="StateMachineProcessDefinitionCollectionRequest" strict="true">
+        <property name="stateMachineProcessDefinitions" type="StateMachineProcessDefinition[]" singular="stateMachineProcessDefinition"/>
+        <property name="isTransactional" type="bool"/>
+    </transfer>
+
+    <transfer name="StateMachineProcessDefinitionCollectionResponse" strict="true">
+        <property name="stateMachineProcessDefinitions" type="StateMachineProcessDefinition[]" singular="stateMachineProcessDefinition"/>
+        <property name="validationResponse" type="StateMachineDefinitionValidationResponse"/>
+        <property name="errors" type="Error[]" singular="error"/>
+    </transfer>
+
+    <transfer name="StateMachineDefinitionTriggerCollectionRequest" strict="true">
+        <property name="stateMachineDefinitionTriggersToAdd" type="StateMachineDefinitionTrigger[]" singular="stateMachineDefinitionTriggerToAdd"/>
+        <property name="stateMachineDefinitionTriggersToRemove" type="StateMachineDefinitionTrigger[]" singular="stateMachineDefinitionTriggerToRemove"/>
+        <property name="isTransactional" type="bool"/>
+    </transfer>
+
+    <transfer name="StateMachineDefinitionTriggerCollectionResponse" strict="true">
+        <property name="stateMachineDefinitionTriggers" type="StateMachineDefinitionTrigger[]" singular="stateMachineDefinitionTrigger"/>
+        <property name="errors" type="Error[]" singular="error"/>
+    </transfer>
+
+    <transfer name="Error">
+        <property name="message" type="string"/>
+        <property name="entityIdentifier" type="string"/>
+    </transfer>
+
+    <transfer name="User">
+        <property name="idUser" type="int"/>
+        <property name="username" type="string"/>
+    </transfer>
+
+    <transfer name="StateMachineItemState">
+        <property name="idItemState" type="int"/>
+        <property name="name" type="string"/>
+    </transfer>
+
+    <transfer name="StateMachineItemStateCollection" strict="true">
+        <property name="stateMachineItemStates" type="StateMachineItemState[]" singular="stateMachineItemState"/>
+    </transfer>
+
+    <transfer name="Pagination">
+        <property name="limit" type="int"/>
+        <property name="offset" type="int"/>
+        <property name="nbResults" type="int"/>
+    </transfer>
+
+    <transfer name="Sort">
+        <property name="field" type="string"/>
+        <property name="isAscending" type="bool"/>
+    </transfer>
+
+    <transfer name="DataImporterConfiguration">
+    </transfer>
+
+    <transfer name="DataImporterReport">
+    </transfer>
+
+    <transfer name="DataImporterDataSourceConfiguration">
+    </transfer>
+
+</transfers>

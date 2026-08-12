@@ -1,0 +1,99 @@
+Workflows,Workflows
+"Workflow Versions",Workflow-Versionen
+"Workflow Triggers",Workflow-Trigger
+"Workflow Instances",Workflow-Instanzen
+"Create Workflow","Workflow erstellen"
+"Create Version","Version erstellen"
+Workflow,Workflow
+"Subject Type",Subjekttyp
+"Subject type",Subjekttyp
+Status,Status
+Actions,Aktionen
+Versions,Versionen
+Triggers,Trigger
+Version,Version
+"Initial State",Anfangszustand
+"Initial state",Anfangszustand
+Activate,Aktivieren
+Deactivate,Deaktivieren
+Instances,Instanzen
+Save,Speichern
+"Save Triggers","Trigger speichern"
+"Select events that start this workflow.","Wählen Sie Events aus, die diesen Workflow starten."
+"No registered trigger events for this subject type.","Keine registrierten Trigger-Events für diesen Subjekttyp."
+"Trigger events",Trigger-Events
+Identifier,Bezeichner
+"Subject Identifier",Subjekt-Bezeichner
+"Current State Id","Aktuelle Zustands-ID"
+"State machine name",State-Machine-Name
+"Workflow name",Workflow-Name
+Description,Beschreibung
+"Definition (state-machine-01 XML)","Definition (state-machine-01 XML)"
+"The workflow was created.","Der Workflow wurde erstellt."
+"The version was saved.","Die Version wurde gespeichert."
+"The version was not found.","Die Version wurde nicht gefunden."
+"The version was activated.","Die Version wurde aktiviert."
+"The version was deactivated.","Die Version wurde deaktiviert."
+"The triggers were saved.","Die Trigger wurden gespeichert."
+"Definition activation rejected: the definition is invalid.","Aktivierung der Definition abgelehnt: Die Definition ist ungültig."
+"Current State","Aktueller Status"
+"State Machines","State Machines"
+"State Machine","State Machine"
+"Workflow Processes",Workflow-Prozesse
+"Create new state machine","Neue State Machine erstellen"
+Processes,Prozesse
+Active,Aktiv
+Inactive,Inaktiv
+"Back to state machines","Zurück zu den State Machines"
+"Back to workflows","Zurück zu den Workflows"
+"Back to versions","Zurück zu den Versionen"
+"Back to instances","Zurück zu den Instanzen"
+"Back to workflow instances","Zurück zu den Workflow-Instanzen"
+"State machine graph",State-Machine-Graph
+"Workflow graph",Workflow-Graph
+Definition,Definition
+Back,Zurück
+"State machine:","State Machine:"
+"Name the state machine, then create its first process.","Benennen Sie die State Machine und erstellen Sie dann ihren ersten Prozess."
+Continue,Weiter
+"Select a state machine","Wählen Sie eine State Machine"
+"The workflow was activated.","Der Workflow wurde aktiviert."
+"The workflow was deactivated.","Der Workflow wurde deaktiviert."
+"Validate definition","Definition validieren"
+Validating…,"Validierung läuft…"
+"The definition is valid.","Die Definition ist gültig."
+"Validation request failed. Please try again.","Die Validierungsanfrage ist fehlgeschlagen. Bitte versuchen Sie es erneut."
+"The definition has the following errors:","Die Definition enthält die folgenden Fehler:"
+"The currently active version %active% will be deactivated.","Die derzeit aktive Version %active% wird deaktiviert."
+"Activate version %target% as the primary version?","Version %target% als primäre Version aktivieren?"
+"Manual events","Manuelle Ereignisse"
+"No manual events are available from the current state.","Aus dem aktuellen Status sind keine manuellen Ereignisse verfügbar."
+"Trigger a manual event to move this instance to the next state.","Lösen Sie ein manuelles Ereignis aus, um diese Instanz in den nächsten Status zu überführen."
+"Transition history",Übergangsverlauf
+"No transitions have been recorded for this instance yet.","Für diese Instanz wurden noch keine Übergänge aufgezeichnet."
+State,Status
+Date,Datum
+#,#
+"You are about to create an editable copy of this workflow. Your changes are saved as a new version - the current one keeps running. Continue?","Sie erstellen gleich eine bearbeitbare Kopie dieses Workflows. Ihre Änderungen werden als neue Version gespeichert - die aktuelle bleibt aktiv. Fortfahren?"
+Delete,Löschen
+"The version was deleted.","Die Version wurde gelöscht."
+"This permanently deletes this version. It has no instances, so nothing running is affected. Delete it?","Dadurch wird diese Version dauerhaft gelöscht. Sie hat keine Instanzen, sodass nichts Laufendes betroffen ist. Löschen?"
+"The active version cannot be deleted. Deactivate it first.","Die aktive Version kann nicht gelöscht werden. Deaktivieren Sie sie zuerst."
+"The version cannot be deleted because it has running instances.","Die Version kann nicht gelöscht werden, da sie laufende Instanzen hat."
+"Set up a workflow in 3 steps","Richten Sie einen Workflow in 3 Schritten ein"
+"Automate what happens after an event fires.","Automatisieren Sie, was passiert, wenn ein Event ausgelöst wird."
+"Create a process","Prozess erstellen"
+"Pick the object it runs on — e.g. a Customer or Order.","Wählen Sie das Objekt aus, auf dem er läuft – z. B. einen Customer oder eine Order."
+"Add a version","Version hinzufügen"
+"Design the states and transitions, then save a version.","Entwerfen Sie die Zustände und Übergänge und speichern Sie dann eine Version."
+"Set triggers & activate","Trigger festlegen & aktivieren"
+"Choose the event that starts it, then switch it to Active.","Wählen Sie das Event aus, das ihn startet, und schalten Sie ihn dann auf Aktiv."
+"Show how this works","Zeigen, wie das funktioniert"
+"Activate version","Version aktivieren"
+Cancel,Abbrechen
+"Create an editable copy","Bearbeitbare Kopie erstellen"
+"Delete version","Version löschen"
+"The name may only contain letters, numbers, spaces, hyphens and underscores.","Der Name darf nur Buchstaben, Zahlen, Leerzeichen, Bindestriche und Unterstriche enthalten."
+"Could not trigger the event.","Das Event konnte nicht ausgelöst werden."
+"The event ""%event%"" was triggered.","Das Event ""%event%"" wurde ausgelöst."
+"The instance was not found.","Die Instanz wurde nicht gefunden."

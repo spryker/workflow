@@ -1,0 +1,115 @@
+<?xml version="1.0"?>
+<database xmlns="spryker:schema-01" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="zed" xsi:schemaLocation="spryker:schema-01 https://static.spryker.com/schema-01.xsd" namespace="Orm\Zed\Workflow\Persistence" package="src.Orm.Zed.Workflow.Persistence">
+
+    <!-- A compiled version of a process. definition = state-machine-01 XML string. -->
+    <table name="spy_state_machine_process_definition" identifierQuoting="true">
+        <column name="id_state_machine_process_definition" required="true" type="INTEGER" autoIncrement="true" primaryKey="true"/>
+        <column name="fk_state_machine_process" type="INTEGER" required="true"/>
+        <column name="fk_user" type="INTEGER" required="false" description="Creator of the definition."/>
+        <column name="uuid" type="VARCHAR" size="36" required="false"/>
+        <column name="definition" type="LONGVARCHAR" required="true" description="Compiled state-machine-01 XML string."/>
+        <column name="initial_state" type="VARCHAR" size="255" required="true" description="Authoritative initial state; validator checks the XML matches."/>
+        <column name="version" type="INTEGER" required="true"/>
+        <column name="status" type="VARCHAR" size="32" required="true" description="active|inactive (single-active)."/>
+        <column name="has_condition_transitions" type="BOOLEAN" required="true" default="false"/>
+        <column name="has_timeout_transitions" type="BOOLEAN" required="true" default="false"/>
+
+        <behavior name="timestampable"/>
+
+        <behavior name="uuid">
+            <parameter name="key_columns" value="fk_state_machine_process.version"/>
+        </behavior>
+
+        <foreign-key name="spy_sm_process_definition-fk_sm_process" foreignTable="spy_state_machine_process" phpName="StateMachineProcess">
+            <reference local="fk_state_machine_process" foreign="id_state_machine_process"/>
+        </foreign-key>
+
+        <unique name="spy_sm_process_definition-unique-uuid">
+            <unique-column name="uuid"/>
+        </unique>
+
+        <unique name="spy_sm_process_definition-unique-version">
+            <unique-column name="fk_state_machine_process"/>
+            <unique-column name="version"/>
+        </unique>
+
+        <index name="spy_sm_process_definition-status">
+            <index-column name="status"/>
+        </index>
+
+        <id-method-parameter value="spy_state_machine_process_definition_pk_seq"/>
+    </table>
+
+    <!-- A subject running on a version. Version-pinned; current-state pointer. -->
+    <table name="spy_state_machine_process_definition_instance" identifierQuoting="true">
+        <column name="id_state_machine_process_definition_instance" required="true" type="INTEGER" autoIncrement="true" primaryKey="true"/>
+        <column name="fk_state_machine_process_definition" type="INTEGER" required="true"/>
+        <column name="fk_state_machine_item_state" type="INTEGER" required="false" description="Current state pointer."/>
+        <column name="uuid" type="VARCHAR" size="36" required="false"/>
+        <column name="identifier" type="INTEGER" required="true" description="Subject PK == engine identifier."/>
+        <column name="finished_at" type="TIMESTAMP" required="false" description="Set when the instance enters a final state; NULL while still in-flight. Lets condition/timeout scans skip finished instances without recomputing final states."/>
+
+        <behavior name="timestampable"/>
+
+        <index name="spy_sm_definition_instance-finished_at">
+            <index-column name="finished_at"/>
+        </index>
+
+        <behavior name="uuid">
+            <parameter name="key_columns" value="fk_state_machine_process_definition.identifier"/>
+        </behavior>
+
+        <foreign-key name="spy_sm_definition_instance-fk_sm_definition" foreignTable="spy_state_machine_process_definition" phpName="StateMachineProcessDefinition">
+            <reference local="fk_state_machine_process_definition" foreign="id_state_machine_process_definition"/>
+        </foreign-key>
+
+        <foreign-key name="spy_sm_definition_instance-fk_sm_item_state" foreignTable="spy_state_machine_item_state" phpName="StateMachineItemState">
+            <reference local="fk_state_machine_item_state" foreign="id_state_machine_item_state"/>
+        </foreign-key>
+
+        <unique name="spy_sm_definition_instance-unique-uuid">
+            <unique-column name="uuid"/>
+        </unique>
+
+        <unique name="spy_sm_definition_instance-unique-identifier">
+            <unique-column name="fk_state_machine_process_definition"/>
+            <unique-column name="identifier"/>
+        </unique>
+
+        <id-method-parameter value="spy_state_machine_process_definition_instance_pk_seq"/>
+    </table>
+
+    <!-- PER PROCESS trigger (Impl A discriminator): FK to the process, not the definition. -->
+    <table name="spy_state_machine_process_definition_trigger" identifierQuoting="true">
+        <column name="id_state_machine_process_definition_trigger" required="true" type="INTEGER" autoIncrement="true" primaryKey="true"/>
+        <column name="fk_state_machine_process" type="INTEGER" required="true"/>
+        <column name="uuid" type="VARCHAR" size="36" required="false"/>
+        <column name="event_name" type="VARCHAR" size="255" required="true" description="e.g. Entity.spy_customer.create."/>
+
+        <behavior name="timestampable"/>
+
+        <behavior name="uuid">
+            <parameter name="key_columns" value="fk_state_machine_process.event_name"/>
+        </behavior>
+
+        <foreign-key name="spy_sm_definition_trigger-fk_sm_process" foreignTable="spy_state_machine_process" phpName="StateMachineProcess">
+            <reference local="fk_state_machine_process" foreign="id_state_machine_process"/>
+        </foreign-key>
+
+        <unique name="spy_sm_definition_trigger-unique-uuid">
+            <unique-column name="uuid"/>
+        </unique>
+
+        <unique name="spy_sm_definition_trigger-unique-event">
+            <unique-column name="fk_state_machine_process"/>
+            <unique-column name="event_name"/>
+        </unique>
+
+        <index name="spy_sm_definition_trigger-event_name">
+            <index-column name="event_name"/>
+        </index>
+
+        <id-method-parameter value="spy_state_machine_process_definition_trigger_pk_seq"/>
+    </table>
+
+</database>

@@ -42,8 +42,8 @@ Description,Description
 "Workflow Processes","Workflow Processes"
 "Create new state machine","Create new state machine"
 Processes,Processes
-Active,Active
-Inactive,Inactive
+active,Active
+inactive,Inactive
 "Back to state machines","Back to state machines"
 "Back to workflows","Back to workflows"
 "Back to versions","Back to versions"

@@ -7,16 +7,11 @@
 
 namespace Spryker\Zed\Workflow\Communication\Controller;
 
-use Generated\Shared\Transfer\StateMachineProcessConditionsTransfer;
-use Generated\Shared\Transfer\StateMachineProcessCriteriaTransfer;
 use Generated\Shared\Transfer\StateMachineProcessDefinitionCollectionRequestTransfer;
 use Generated\Shared\Transfer\StateMachineProcessDefinitionCollectionResponseTransfer;
-use Generated\Shared\Transfer\StateMachineProcessDefinitionConditionsTransfer;
-use Generated\Shared\Transfer\StateMachineProcessDefinitionCriteriaTransfer;
 use Generated\Shared\Transfer\StateMachineProcessDefinitionTransfer;
 use Generated\Shared\Transfer\StateMachineProcessTransfer;
 use Spryker\Service\UtilText\Model\Url\Url;
-use Spryker\Zed\Kernel\Communication\Controller\AbstractController;
 use Spryker\Zed\Workflow\Communication\Form\VersionForm;
 use Spryker\Zed\Workflow\WorkflowConfig;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -27,53 +22,21 @@ use Symfony\Component\HttpFoundation\Request;
  * @method \Spryker\Zed\Workflow\Business\WorkflowFacadeInterface getFacade()
  * @method \Spryker\Zed\Workflow\Communication\WorkflowCommunicationFactory getFactory()
  */
-class VersionController extends AbstractController
+class VersionController extends AbstractWorkflowController
 {
     /**
-     * @var string
-     */
-    protected const MESSAGE_CSRF_TOKEN_INVALID = 'CSRF token is not valid.';
-
-    /**
-     * @uses \Spryker\Zed\Workflow\Communication\Controller\ProcessController::indexAction()
-     *
-     * @var string
-     */
-    protected const URL_PROCESS_LIST = '/workflow/process';
-
-    /**
      * @uses \Spryker\Zed\Workflow\Communication\Controller\VersionController::indexAction()
-     *
-     * @var string
      */
-    protected const URL_VERSION_LIST = '/workflow/version';
+    protected const string URL_VERSION_LIST = '/workflow/version';
 
     /**
      * @uses \Spryker\Zed\Workflow\Communication\Controller\VersionController::createAction()
-     *
-     * @var string
      */
-    protected const URL_VERSION_CREATE = '/workflow/version/create';
+    protected const string URL_VERSION_CREATE = '/workflow/version/create';
 
-    /**
-     * @var string
-     */
-    protected const PARAM_ID_PROCESS = 'id-process';
+    protected const string PARAM_BACK = 'back';
 
-    /**
-     * @var string
-     */
-    protected const PARAM_ID_DEFINITION = 'id-definition';
-
-    /**
-     * @var string
-     */
-    protected const PARAM_BACK = 'back';
-
-    /**
-     * @var string
-     */
-    protected const BACK_ORIGIN_PROCESS = 'process';
+    protected const string BACK_ORIGIN_PROCESS = 'process';
 
     /**
      * @param \Symfony\Component\HttpFoundation\Request $request
@@ -88,13 +51,11 @@ class VersionController extends AbstractController
 
         $idStateMachineProcess = $this->castId($request->query->get(static::PARAM_ID_PROCESS));
 
-        $stateMachineProcessCollectionTransfer = $this->getFacade()->getStateMachineProcessCollection(
-            (new StateMachineProcessCriteriaTransfer())->setStateMachineProcessConditions(
-                (new StateMachineProcessConditionsTransfer())->addIdStateMachineProcess($idStateMachineProcess),
-            ),
-        );
+        $stateMachineProcessTransfer = $this->findStateMachineProcessOrFlashError($idStateMachineProcess);
 
-        $stateMachineProcessTransfer = $stateMachineProcessCollectionTransfer->getStateMachineProcesses()->getIterator()->current();
+        if ($stateMachineProcessTransfer === null) {
+            return $this->redirectResponse(static::URL_PROCESS_LIST);
+        }
 
         return $this->viewResponse([
             'idStateMachineProcess' => $idStateMachineProcess,
@@ -122,24 +83,14 @@ class VersionController extends AbstractController
     {
         $idStateMachineProcessDefinition = $this->castId($request->query->get(static::PARAM_ID_DEFINITION));
 
-        $stateMachineProcessDefinitionCollectionTransfer = $this->getFacade()->getStateMachineProcessDefinitionCollection(
-            (new StateMachineProcessDefinitionCriteriaTransfer())
-                ->setStateMachineProcessDefinitionConditions(
-                    (new StateMachineProcessDefinitionConditionsTransfer())->addIdStateMachineProcessDefinition($idStateMachineProcessDefinition),
-                ),
-        );
+        $stateMachineProcessDefinitionTransfer = $this->findStateMachineProcessVersionOrFlashError($idStateMachineProcessDefinition);
 
-        $stateMachineProcessDefinitionTransfer = $stateMachineProcessDefinitionCollectionTransfer->getStateMachineProcessDefinitions()->getIterator()->current();
+        if ($stateMachineProcessDefinitionTransfer === null) {
+            return $this->redirectResponse(static::URL_PROCESS_LIST);
+        }
 
-        $idStateMachineProcess = $stateMachineProcessDefinitionTransfer->getStateMachineProcessOrFail()->getIdStateMachineProcessOrFail();
-
-        $stateMachineProcessCollectionTransfer = $this->getFacade()->getStateMachineProcessCollection(
-            (new StateMachineProcessCriteriaTransfer())->setStateMachineProcessConditions(
-                (new StateMachineProcessConditionsTransfer())->addIdStateMachineProcess($idStateMachineProcess),
-            ),
-        );
-
-        $stateMachineProcessTransfer = $stateMachineProcessCollectionTransfer->getStateMachineProcesses()->getIterator()->current() ?: null;
+        $stateMachineProcessTransfer = $stateMachineProcessDefinitionTransfer->getStateMachineProcessOrFail();
+        $idStateMachineProcess = $stateMachineProcessTransfer->getIdStateMachineProcessOrFail();
 
         $backLink = $this->resolveBackLink((string)$request->query->get(static::PARAM_BACK), $idStateMachineProcess);
 
@@ -179,19 +130,6 @@ class VersionController extends AbstractController
         ];
     }
 
-    protected function findProcessName(int $idStateMachineProcess): ?string
-    {
-        $stateMachineProcessCollectionTransfer = $this->getFacade()->getStateMachineProcessCollection(
-            (new StateMachineProcessCriteriaTransfer())->setStateMachineProcessConditions(
-                (new StateMachineProcessConditionsTransfer())->addIdStateMachineProcess($idStateMachineProcess),
-            ),
-        );
-
-        $stateMachineProcessTransfer = $stateMachineProcessCollectionTransfer->getStateMachineProcesses()->getIterator()->current();
-
-        return $stateMachineProcessTransfer !== null ? $stateMachineProcessTransfer->getProcessName() : null;
-    }
-
     /**
      * @param \Symfony\Component\HttpFoundation\Request $request
      *
@@ -200,6 +138,12 @@ class VersionController extends AbstractController
     public function createAction(Request $request): array|RedirectResponse
     {
         $idStateMachineProcess = $this->castId($request->query->get(static::PARAM_ID_PROCESS));
+
+        $stateMachineProcessTransfer = $this->findStateMachineProcessOrFlashError($idStateMachineProcess);
+
+        if ($stateMachineProcessTransfer === null) {
+            return $this->redirectResponse(static::URL_PROCESS_LIST);
+        }
 
         $versionForm = $this->getFactory()->createVersionForm(
             $this->buildVersionFormData($request, $idStateMachineProcess),
@@ -239,7 +183,7 @@ class VersionController extends AbstractController
         return $this->viewResponse([
             'versionForm' => $versionForm->createView(),
             'idStateMachineProcess' => $idStateMachineProcess,
-            'processName' => $this->findProcessName($idStateMachineProcess),
+            'processName' => $stateMachineProcessTransfer->getProcessName(),
         ]);
     }
 
@@ -259,12 +203,9 @@ class VersionController extends AbstractController
             return $data;
         }
 
-        $stateMachineProcessDefinitionTransfer = $this->getFacade()->getStateMachineProcessDefinitionCollection(
-            (new StateMachineProcessDefinitionCriteriaTransfer())
-                ->setStateMachineProcessDefinitionConditions(
-                    (new StateMachineProcessDefinitionConditionsTransfer())->addIdStateMachineProcessDefinition($this->castId($idStateMachineProcessDefinition)),
-                ),
-        )->getStateMachineProcessDefinitions()->getIterator()->current() ?: null;
+        $stateMachineProcessDefinitionTransfer = $this->getFactory()
+            ->createStateMachineProcessVersionReader()
+            ->findStateMachineProcessDefinition($this->castId($idStateMachineProcessDefinition));
 
         if ($stateMachineProcessDefinitionTransfer === null) {
             return $data;

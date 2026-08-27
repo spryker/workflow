@@ -36,6 +36,16 @@ class ProcessCollectionTest extends Unit
     /**
      * @var string
      */
+    protected const PROCESS_NOT_FOUND_ERROR_MESSAGE = 'The workflow was not found.';
+
+    /**
+     * @var int
+     */
+    protected const ID_STATE_MACHINE_PROCESS_NON_EXISTENT = 99999999;
+
+    /**
+     * @var string
+     */
     protected const INTERNAL_STATE_MACHINE_NAME = 'SprykerTestInternalStateMachine';
 
     protected WorkflowBusinessTester $tester;
@@ -109,6 +119,27 @@ class ProcessCollectionTest extends Unit
 
         // Assert
         $this->assertSame($activeStatus, $this->findProcessStatusById($stateMachineProcessTransfer->getIdStateMachineProcessOrFail()));
+    }
+
+    public function testUpdateStateMachineProcessCollectionReturnsErrorWhenProcessDoesNotExist(): void
+    {
+        // Act
+        $stateMachineProcessCollectionResponseTransfer = $this->tester->getFacade()->updateStateMachineProcessCollection(
+            (new StateMachineProcessCollectionRequestTransfer())
+                ->addStateMachineProcess(
+                    (new StateMachineProcessTransfer())
+                        ->setIdStateMachineProcess(static::ID_STATE_MACHINE_PROCESS_NON_EXISTENT)
+                        ->setStatus(WorkflowConfig::PROCESS_DEFINITION_STATUS_ACTIVE),
+                ),
+        );
+
+        // Assert
+        $this->assertCount(0, $stateMachineProcessCollectionResponseTransfer->getStateMachineProcesses());
+        $this->assertCount(1, $stateMachineProcessCollectionResponseTransfer->getErrors());
+        $this->assertSame(
+            static::PROCESS_NOT_FOUND_ERROR_MESSAGE,
+            $stateMachineProcessCollectionResponseTransfer->getErrors()->getIterator()->current()->getMessage(),
+        );
     }
 
     public function testGetStateMachineProcessCollectionFiltersByStateMachineName(): void

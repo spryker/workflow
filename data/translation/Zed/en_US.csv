@@ -97,3 +97,6 @@ Cancel,Cancel
 "Could not trigger the event.","Could not trigger the event."
 "The event ""%event%"" was triggered.","The event ""%event%"" was triggered."
 "The instance was not found.","The instance was not found."
+"Workflow with ID %id% does not exist.","Workflow with ID %id% does not exist."
+"Workflow version with ID %id% does not exist.","Workflow version with ID %id% does not exist."
+"The workflow was not found.","The workflow was not found."

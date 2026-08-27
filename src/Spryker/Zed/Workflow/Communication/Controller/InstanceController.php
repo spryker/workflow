@@ -9,13 +9,10 @@ namespace Spryker\Zed\Workflow\Communication\Controller;
 
 use Generated\Shared\Transfer\StateMachineEventTriggerRequestTransfer;
 use Generated\Shared\Transfer\StateMachineItemTransfer;
-use Generated\Shared\Transfer\StateMachineProcessDefinitionConditionsTransfer;
-use Generated\Shared\Transfer\StateMachineProcessDefinitionCriteriaTransfer;
 use Generated\Shared\Transfer\StateMachineProcessDefinitionInstanceConditionsTransfer;
 use Generated\Shared\Transfer\StateMachineProcessDefinitionInstanceCriteriaTransfer;
 use Generated\Shared\Transfer\StateMachineProcessDefinitionTransfer;
 use Spryker\Service\UtilText\Model\Url\Url;
-use Spryker\Zed\Kernel\Communication\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -25,36 +22,16 @@ use Symfony\Component\HttpFoundation\Request;
  * @method \Spryker\Zed\Workflow\Communication\WorkflowCommunicationFactory getFactory()
  * @method \Spryker\Zed\Workflow\WorkflowConfig getConfig()
  */
-class InstanceController extends AbstractController
+class InstanceController extends AbstractWorkflowController
 {
-    /**
-     * @var string
-     */
-    protected const PARAM_ID_DEFINITION = 'id-definition';
+    protected const string PARAM_IDENTIFIER = 'identifier';
 
-    /**
-     * @var string
-     */
-    protected const PARAM_IDENTIFIER = 'identifier';
-
-    /**
-     * @var string
-     */
-    protected const PARAM_EVENT = 'event';
+    protected const string PARAM_EVENT = 'event';
 
     /**
      * @uses \Spryker\Zed\Workflow\Communication\Controller\InstanceController::viewAction()
-     *
-     * @var string
      */
-    protected const URL_INSTANCE_VIEW = '/workflow/instance/view';
-
-    /**
-     * @uses \Spryker\Zed\Workflow\Communication\Controller\ProcessController::indexAction()
-     *
-     * @var string
-     */
-    protected const URL_PROCESS = '/workflow/process';
+    protected const string URL_INSTANCE_VIEW = '/workflow/instance/view';
 
     /**
      * @param \Symfony\Component\HttpFoundation\Request $request
@@ -64,25 +41,23 @@ class InstanceController extends AbstractController
     public function indexAction(Request $request): array|RedirectResponse
     {
         if (!$request->query->get(static::PARAM_ID_DEFINITION)) {
-            return $this->redirectResponse(static::URL_PROCESS);
+            return $this->redirectResponse(static::URL_PROCESS_LIST);
         }
 
         $idStateMachineProcessDefinition = $this->castId($request->query->get(static::PARAM_ID_DEFINITION));
 
-        $stateMachineProcessDefinitionCollectionTransfer = $this->getFacade()->getStateMachineProcessDefinitionCollection(
-            (new StateMachineProcessDefinitionCriteriaTransfer())
-                ->setStateMachineProcessDefinitionConditions(
-                    (new StateMachineProcessDefinitionConditionsTransfer())->addIdStateMachineProcessDefinition($idStateMachineProcessDefinition),
-                ),
-        );
+        $stateMachineProcessDefinitionTransfer = $this->findStateMachineProcessVersionOrFlashError($idStateMachineProcessDefinition);
 
-        $stateMachineProcessDefinitionTransfer = $stateMachineProcessDefinitionCollectionTransfer->getStateMachineProcessDefinitions()->getIterator()->current() ?: null;
-        $stateMachineProcessTransfer = $stateMachineProcessDefinitionTransfer?->getStateMachineProcessOrFail();
+        if ($stateMachineProcessDefinitionTransfer === null) {
+            return $this->redirectResponse(static::URL_PROCESS_LIST);
+        }
+
+        $stateMachineProcessTransfer = $stateMachineProcessDefinitionTransfer->getStateMachineProcessOrFail();
 
         return $this->viewResponse([
             'idStateMachineProcessDefinition' => $idStateMachineProcessDefinition,
-            'idStateMachineProcess' => $stateMachineProcessTransfer?->getIdStateMachineProcess(),
-            'processName' => $stateMachineProcessTransfer?->getProcessName(),
+            'idStateMachineProcess' => $stateMachineProcessTransfer->getIdStateMachineProcess(),
+            'processName' => $stateMachineProcessTransfer->getProcessName(),
             'instanceTable' => $this->getFactory()->createInstanceTable($idStateMachineProcessDefinition)->render(),
         ]);
     }
@@ -155,7 +130,7 @@ class InstanceController extends AbstractController
         if ($stateMachineProcessDefinitionInstanceTransfer === null) {
             $this->addErrorMessage('The instance was not found.');
 
-            return $this->redirectResponse(Url::generate(static::URL_PROCESS)->build());
+            return $this->redirectResponse(Url::generate(static::URL_PROCESS_LIST)->build());
         }
 
         $stateMachineProcessDefinitionTransfer = $stateMachineProcessDefinitionInstanceTransfer->getStateMachineProcessDefinitionOrFail();

@@ -10,12 +10,9 @@ namespace Spryker\Zed\Workflow\Communication\Controller;
 use Generated\Shared\Transfer\StateMachineDefinitionTriggerCollectionTransfer;
 use Generated\Shared\Transfer\StateMachineDefinitionTriggerConditionsTransfer;
 use Generated\Shared\Transfer\StateMachineDefinitionTriggerCriteriaTransfer;
-use Generated\Shared\Transfer\StateMachineProcessConditionsTransfer;
-use Generated\Shared\Transfer\StateMachineProcessCriteriaTransfer;
 use Generated\Shared\Transfer\StateMachineTriggerEventConditionsTransfer;
 use Generated\Shared\Transfer\StateMachineTriggerEventCriteriaTransfer;
 use Spryker\Service\UtilText\Model\Url\Url;
-use Spryker\Zed\Kernel\Communication\Controller\AbstractController;
 use Spryker\Zed\Workflow\Communication\Form\TriggerForm;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -25,20 +22,8 @@ use Symfony\Component\HttpFoundation\Request;
  * @method \Spryker\Zed\Workflow\Communication\WorkflowCommunicationFactory getFactory()
  * @method \Spryker\Zed\Workflow\WorkflowConfig getConfig()
  */
-class TriggerController extends AbstractController
+class TriggerController extends AbstractWorkflowController
 {
-    /**
-     * @var string
-     */
-    protected const PARAM_ID_PROCESS = 'id-process';
-
-    /**
-     * @uses \Spryker\Zed\Workflow\Communication\Controller\ProcessController::indexAction()
-     *
-     * @var string
-     */
-    protected const URL_PROCESS = '/workflow/process';
-
     /**
      * @param \Symfony\Component\HttpFoundation\Request $request
      *
@@ -47,10 +32,16 @@ class TriggerController extends AbstractController
     public function indexAction(Request $request): array|RedirectResponse
     {
         if ($request->query->get(static::PARAM_ID_PROCESS) === null) {
-            return $this->redirectResponse(Url::generate(static::URL_PROCESS)->build());
+            return $this->redirectResponse(Url::generate(static::URL_PROCESS_LIST)->build());
         }
 
         $idStateMachineProcess = $this->castId($request->query->get(static::PARAM_ID_PROCESS));
+
+        $stateMachineProcessTransfer = $this->findStateMachineProcessOrFlashError($idStateMachineProcess);
+
+        if ($stateMachineProcessTransfer === null) {
+            return $this->redirectResponse(Url::generate(static::URL_PROCESS_LIST)->build());
+        }
 
         $stateMachineDefinitionTriggerCollectionTransfer = $this->getFacade()->getStateMachineDefinitionTriggerCollection(
             (new StateMachineDefinitionTriggerCriteriaTransfer())
@@ -87,22 +78,9 @@ class TriggerController extends AbstractController
         return $this->viewResponse([
             'triggerForm' => $triggerForm->createView(),
             'idStateMachineProcess' => $idStateMachineProcess,
-            'processName' => $this->findProcessName($idStateMachineProcess),
+            'processName' => $stateMachineProcessTransfer->getProcessName(),
             'hasAvailableEvents' => $eventsAvailableForStateMachineProcess !== [],
         ]);
-    }
-
-    protected function findProcessName(int $idStateMachineProcess): ?string
-    {
-        $stateMachineProcessCollectionTransfer = $this->getFacade()->getStateMachineProcessCollection(
-            (new StateMachineProcessCriteriaTransfer())->setStateMachineProcessConditions(
-                (new StateMachineProcessConditionsTransfer())->addIdStateMachineProcess($idStateMachineProcess),
-            ),
-        );
-
-        $stateMachineProcessTransfer = $stateMachineProcessCollectionTransfer->getStateMachineProcesses()->getIterator()->current();
-
-        return $stateMachineProcessTransfer !== null ? $stateMachineProcessTransfer->getProcessName() : null;
     }
 
     /**
@@ -128,7 +106,7 @@ class TriggerController extends AbstractController
         $this->getFacade()->updateStateMachineDefinitionTriggerCollection($stateMachineDefinitionTriggerCollectionRequestTransfer);
         $this->addSuccessMessage('The triggers were saved.');
 
-        return $this->redirectResponse(Url::generate(static::URL_PROCESS)->build());
+        return $this->redirectResponse(Url::generate(static::URL_PROCESS_LIST)->build());
     }
 
     /**

@@ -97,3 +97,6 @@ Cancel,Abbrechen
 "Could not trigger the event.","Das Event konnte nicht ausgelöst werden."
 "The event ""%event%"" was triggered.","Das Event ""%event%"" wurde ausgelöst."
 "The instance was not found.","Die Instanz wurde nicht gefunden."
+"Workflow with ID %id% does not exist.","Workflow mit der ID %id% existiert nicht."
+"Workflow version with ID %id% does not exist.","Workflow-Version mit der ID %id% existiert nicht."
+"The workflow was not found.","Der Workflow wurde nicht gefunden."

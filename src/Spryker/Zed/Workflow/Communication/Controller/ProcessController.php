@@ -10,7 +10,6 @@ namespace Spryker\Zed\Workflow\Communication\Controller;
 use Generated\Shared\Transfer\StateMachineProcessCollectionRequestTransfer;
 use Generated\Shared\Transfer\StateMachineProcessTransfer;
 use Spryker\Service\UtilText\Model\Url\Url;
-use Spryker\Zed\Kernel\Communication\Controller\AbstractController;
 use Spryker\Zed\Workflow\Communication\Form\ProcessForm;
 use Spryker\Zed\Workflow\WorkflowConfig;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -21,22 +20,11 @@ use Symfony\Component\HttpFoundation\Request;
  * @method \Spryker\Zed\Workflow\Business\WorkflowFacadeInterface getFacade()
  * @method \Spryker\Zed\Workflow\Communication\WorkflowCommunicationFactory getFactory()
  */
-class ProcessController extends AbstractController
+class ProcessController extends AbstractWorkflowController
 {
-    /**
-     * @var string
-     */
-    protected const PARAM_ID_PROCESS = 'id-process';
+    protected const string MESSAGE_WORKFLOW_ACTIVATED = 'The workflow was activated.';
 
-    /**
-     * @var string
-     */
-    protected const URL_PROCESS = '/workflow/process';
-
-    /**
-     * @var string
-     */
-    protected const MESSAGE_CSRF_TOKEN_INVALID = 'CSRF token is not valid.';
+    protected const string MESSAGE_WORKFLOW_DEACTIVATED = 'The workflow was deactivated.';
 
     /**
      * @return array<string, mixed>
@@ -81,17 +69,14 @@ class ProcessController extends AbstractController
         if (!$processActivationForm->isSubmitted() || !$processActivationForm->isValid()) {
             $this->addErrorMessage(static::MESSAGE_CSRF_TOKEN_INVALID);
 
-            return $this->redirectResponse(Url::generate(static::URL_PROCESS)->build());
+            return $this->redirectResponse(Url::generate(static::URL_PROCESS_LIST)->build());
         }
 
-        $this->updateProcessStatus(
+        return $this->updateProcessStatus(
             $idStateMachineProcess,
             WorkflowConfig::PROCESS_DEFINITION_STATUS_ACTIVE,
+            static::MESSAGE_WORKFLOW_ACTIVATED,
         );
-
-        $this->addSuccessMessage('The workflow was activated.');
-
-        return $this->redirectResponse(Url::generate(static::URL_PROCESS)->build());
     }
 
     public function deactivateAction(Request $request): RedirectResponse
@@ -103,22 +88,30 @@ class ProcessController extends AbstractController
         if (!$processActivationForm->isSubmitted() || !$processActivationForm->isValid()) {
             $this->addErrorMessage(static::MESSAGE_CSRF_TOKEN_INVALID);
 
-            return $this->redirectResponse(Url::generate(static::URL_PROCESS)->build());
+            return $this->redirectResponse(Url::generate(static::URL_PROCESS_LIST)->build());
         }
 
-        $this->updateProcessStatus(
+        return $this->updateProcessStatus(
             $idStateMachineProcess,
             WorkflowConfig::PROCESS_DEFINITION_STATUS_INACTIVE,
+            static::MESSAGE_WORKFLOW_DEACTIVATED,
         );
-
-        $this->addSuccessMessage('The workflow was deactivated.');
-
-        return $this->redirectResponse(Url::generate(static::URL_PROCESS)->build());
     }
 
-    protected function updateProcessStatus(int $idStateMachineProcess, string $status): void
-    {
-        $this->getFacade()->updateStateMachineProcessCollection(
+    protected function updateProcessStatus(
+        int $idStateMachineProcess,
+        string $status,
+        string $successMessage
+    ): RedirectResponse {
+        $processListUrl = Url::generate(static::URL_PROCESS_LIST)->build();
+
+        $stateMachineProcessTransfer = $this->findStateMachineProcessOrFlashError($idStateMachineProcess);
+
+        if ($stateMachineProcessTransfer === null) {
+            return $this->redirectResponse($processListUrl);
+        }
+
+        $stateMachineProcessCollectionResponseTransfer = $this->getFacade()->updateStateMachineProcessCollection(
             (new StateMachineProcessCollectionRequestTransfer())
                 ->addStateMachineProcess(
                     (new StateMachineProcessTransfer())
@@ -127,6 +120,18 @@ class ProcessController extends AbstractController
                 )
                 ->setIsTransactional(true),
         );
+
+        if ($stateMachineProcessCollectionResponseTransfer->getErrors()->count() > 0) {
+            foreach ($stateMachineProcessCollectionResponseTransfer->getErrors() as $errorTransfer) {
+                $this->addErrorMessage($errorTransfer->getMessageOrFail());
+            }
+
+            return $this->redirectResponse($processListUrl);
+        }
+
+        $this->addSuccessMessage($successMessage);
+
+        return $this->redirectResponse($processListUrl);
     }
 
     /**
@@ -153,11 +158,11 @@ class ProcessController extends AbstractController
                 $this->addErrorMessage($errorTransfer->getMessageOrFail());
             }
 
-            return $this->redirectResponse(Url::generate(static::URL_PROCESS)->build());
+            return $this->redirectResponse(Url::generate(static::URL_PROCESS_LIST)->build());
         }
 
         $this->addSuccessMessage('The workflow was created.');
 
-        return $this->redirectResponse(Url::generate(static::URL_PROCESS)->build());
+        return $this->redirectResponse(Url::generate(static::URL_PROCESS_LIST)->build());
     }
 }

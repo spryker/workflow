@@ -10,20 +10,28 @@ namespace Spryker\Zed\Workflow\Business\Writer;
 use Generated\Shared\Transfer\ErrorTransfer;
 use Generated\Shared\Transfer\StateMachineProcessCollectionRequestTransfer;
 use Generated\Shared\Transfer\StateMachineProcessCollectionResponseTransfer;
-use Generated\Shared\Transfer\StateMachineProcessConditionsTransfer;
-use Generated\Shared\Transfer\StateMachineProcessCriteriaTransfer;
 use Spryker\Zed\Kernel\Persistence\EntityManager\TransactionTrait;
+use Spryker\Zed\Workflow\Business\Reader\StateMachineProcessExistenceReaderInterface;
 use Spryker\Zed\Workflow\Persistence\WorkflowEntityManagerInterface;
-use Spryker\Zed\Workflow\Persistence\WorkflowRepositoryInterface;
 use Spryker\Zed\Workflow\WorkflowConfig;
 
 class ProcessWriter implements ProcessWriterInterface
 {
     use TransactionTrait;
 
+    /**
+     * @var string
+     */
+    protected const ERROR_PROCESS_NOT_FOUND = 'The workflow was not found.';
+
+    /**
+     * @var string
+     */
+    protected const ERROR_STATE_MACHINE_NAME_TAKEN = 'A state machine with this name already exists.';
+
     public function __construct(
         protected WorkflowEntityManagerInterface $workflowEntityManager,
-        protected WorkflowRepositoryInterface $workflowRepository
+        protected StateMachineProcessExistenceReaderInterface $stateMachineProcessExistenceReader
     ) {
     }
 
@@ -39,13 +47,18 @@ class ProcessWriter implements ProcessWriterInterface
         StateMachineProcessCollectionRequestTransfer $stateMachineProcessCollectionRequestTransfer
     ): StateMachineProcessCollectionResponseTransfer {
         $stateMachineProcessCollectionResponseTransfer = new StateMachineProcessCollectionResponseTransfer();
+        $stateMachineProcessTransfers = $stateMachineProcessCollectionRequestTransfer->getStateMachineProcesses();
 
-        foreach ($stateMachineProcessCollectionRequestTransfer->getStateMachineProcesses() as $stateMachineProcessTransfer) {
-            if ($this->hasStateMachineProcessWithName($stateMachineProcessTransfer->getStateMachineNameOrFail())) {
+        $takenStateMachineNames = $this->stateMachineProcessExistenceReader->getTakenStateMachineNames($stateMachineProcessTransfers);
+
+        foreach ($stateMachineProcessTransfers as $stateMachineProcessTransfer) {
+            $stateMachineName = $stateMachineProcessTransfer->getStateMachineNameOrFail();
+
+            if (isset($takenStateMachineNames[$stateMachineName])) {
                 $stateMachineProcessCollectionResponseTransfer->addError(
                     (new ErrorTransfer())
-                        ->setMessage('A state machine with this name already exists.')
-                        ->setEntityIdentifier($stateMachineProcessTransfer->getStateMachineNameOrFail()),
+                        ->setMessage(static::ERROR_STATE_MACHINE_NAME_TAKEN)
+                        ->setEntityIdentifier($stateMachineName),
                 );
 
                 continue;
@@ -55,25 +68,14 @@ class ProcessWriter implements ProcessWriterInterface
                 $stateMachineProcessTransfer->setStatus(WorkflowConfig::PROCESS_DEFINITION_STATUS_INACTIVE);
             }
 
+            $takenStateMachineNames[$stateMachineName] = true;
+
             $stateMachineProcessCollectionResponseTransfer->addStateMachineProcess(
                 $this->workflowEntityManager->createStateMachineProcess($stateMachineProcessTransfer),
             );
         }
 
         return $stateMachineProcessCollectionResponseTransfer;
-    }
-
-    protected function hasStateMachineProcessWithName(string $stateMachineName): bool
-    {
-        return $this->workflowRepository
-            ->getStateMachineProcessCollection(
-                (new StateMachineProcessCriteriaTransfer())
-                    ->setStateMachineProcessConditions(
-                        (new StateMachineProcessConditionsTransfer())->addStateMachineName($stateMachineName),
-                    ),
-            )
-            ->getStateMachineProcesses()
-            ->count() > 0;
     }
 
     public function updateStateMachineProcessCollection(
@@ -88,8 +90,23 @@ class ProcessWriter implements ProcessWriterInterface
         StateMachineProcessCollectionRequestTransfer $stateMachineProcessCollectionRequestTransfer
     ): StateMachineProcessCollectionResponseTransfer {
         $stateMachineProcessCollectionResponseTransfer = new StateMachineProcessCollectionResponseTransfer();
+        $stateMachineProcessTransfers = $stateMachineProcessCollectionRequestTransfer->getStateMachineProcesses();
 
-        foreach ($stateMachineProcessCollectionRequestTransfer->getStateMachineProcesses() as $stateMachineProcessTransfer) {
+        $existingStateMachineProcessIds = $this->stateMachineProcessExistenceReader->getExistingStateMachineProcessIds($stateMachineProcessTransfers);
+
+        foreach ($stateMachineProcessTransfers as $stateMachineProcessTransfer) {
+            $idStateMachineProcess = $stateMachineProcessTransfer->getIdStateMachineProcessOrFail();
+
+            if (!isset($existingStateMachineProcessIds[$idStateMachineProcess])) {
+                $stateMachineProcessCollectionResponseTransfer->addError(
+                    (new ErrorTransfer())
+                        ->setMessage(static::ERROR_PROCESS_NOT_FOUND)
+                        ->setEntityIdentifier((string)$idStateMachineProcess),
+                );
+
+                continue;
+            }
+
             $stateMachineProcessCollectionResponseTransfer->addStateMachineProcess(
                 $this->workflowEntityManager->updateStateMachineProcess($stateMachineProcessTransfer),
             );

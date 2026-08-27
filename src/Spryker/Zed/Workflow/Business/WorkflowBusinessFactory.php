@@ -21,6 +21,8 @@ use Spryker\Zed\Workflow\Business\Expander\TransitionFlagExpander;
 use Spryker\Zed\Workflow\Business\Expander\TransitionFlagExpanderInterface;
 use Spryker\Zed\Workflow\Business\Reader\StateMachineProcessDefinitionReader;
 use Spryker\Zed\Workflow\Business\Reader\StateMachineProcessDefinitionReaderInterface;
+use Spryker\Zed\Workflow\Business\Reader\StateMachineProcessExistenceReader;
+use Spryker\Zed\Workflow\Business\Reader\StateMachineProcessExistenceReaderInterface;
 use Spryker\Zed\Workflow\Business\Reader\TriggerEventReader;
 use Spryker\Zed\Workflow\Business\Reader\TriggerEventReaderInterface;
 use Spryker\Zed\Workflow\Business\Registry\PluginRegistry;
@@ -186,8 +188,13 @@ class WorkflowBusinessFactory extends AbstractBusinessFactory
     {
         return new ProcessWriter(
             $this->getEntityManager(),
-            $this->getRepository(),
+            $this->createStateMachineProcessExistenceReader(),
         );
+    }
+
+    public function createStateMachineProcessExistenceReader(): StateMachineProcessExistenceReaderInterface
+    {
+        return new StateMachineProcessExistenceReader($this->getRepository());
     }
 
     public function createDefinitionWriter(): DefinitionWriterInterface

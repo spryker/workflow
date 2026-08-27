@@ -19,6 +19,10 @@ use Spryker\Zed\Workflow\Communication\Form\TriggerForm;
 use Spryker\Zed\Workflow\Communication\Form\VersionActivationForm;
 use Spryker\Zed\Workflow\Communication\Form\VersionDeleteForm;
 use Spryker\Zed\Workflow\Communication\Form\VersionForm;
+use Spryker\Zed\Workflow\Communication\Reader\StateMachineProcessReader;
+use Spryker\Zed\Workflow\Communication\Reader\StateMachineProcessReaderInterface;
+use Spryker\Zed\Workflow\Communication\Reader\StateMachineProcessVersionReader;
+use Spryker\Zed\Workflow\Communication\Reader\StateMachineProcessVersionReaderInterface;
 use Spryker\Zed\Workflow\Communication\Table\InstanceTable;
 use Spryker\Zed\Workflow\Communication\Table\ProcessTable;
 use Spryker\Zed\Workflow\Communication\Table\VersionTable;
@@ -113,6 +117,16 @@ class WorkflowCommunicationFactory extends AbstractCommunicationFactory
     public function createTriggerMapper(): TriggerMapperInterface
     {
         return new TriggerMapper();
+    }
+
+    public function createStateMachineProcessReader(): StateMachineProcessReaderInterface
+    {
+        return new StateMachineProcessReader($this->getFacade());
+    }
+
+    public function createStateMachineProcessVersionReader(): StateMachineProcessVersionReaderInterface
+    {
+        return new StateMachineProcessVersionReader($this->getFacade());
     }
 
     public function createProcessActivationForm(): FormInterface

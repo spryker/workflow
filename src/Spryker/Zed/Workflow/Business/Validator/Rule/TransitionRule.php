@@ -57,7 +57,8 @@ class TransitionRule implements DefinitionValidationRuleInterface
             );
         }
 
-        $this->validateUnreachableStates($stateNames, $reachableStates, $stateMachineDefinitionValidationResponseTransfer);
+        $initialState = $definitionValidationContext->getStateMachineProcessDefinition()->getInitialState();
+        $this->validateUnreachableStates($stateNames, $reachableStates, $initialState, $stateMachineDefinitionValidationResponseTransfer);
     }
 
     /**
@@ -107,11 +108,15 @@ class TransitionRule implements DefinitionValidationRuleInterface
     protected function validateUnreachableStates(
         array $stateNames,
         array $reachableStates,
+        ?string $initialState,
         StateMachineDefinitionValidationResponseTransfer $stateMachineDefinitionValidationResponseTransfer
     ): void {
-        $entryState = $stateNames[0] ?? null;
+        if ($initialState === null || $initialState === '' || !in_array($initialState, $stateNames, true)) {
+            return;
+        }
+
         foreach ($stateNames as $stateName) {
-            if ($stateName === $entryState || in_array($stateName, $reachableStates, true)) {
+            if ($stateName === $initialState || in_array($stateName, $reachableStates, true)) {
                 continue;
             }
 

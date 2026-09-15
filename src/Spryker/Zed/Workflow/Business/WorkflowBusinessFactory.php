@@ -23,6 +23,8 @@ use Spryker\Zed\Workflow\Business\Reader\StateMachineProcessDefinitionReader;
 use Spryker\Zed\Workflow\Business\Reader\StateMachineProcessDefinitionReaderInterface;
 use Spryker\Zed\Workflow\Business\Reader\StateMachineProcessExistenceReader;
 use Spryker\Zed\Workflow\Business\Reader\StateMachineProcessExistenceReaderInterface;
+use Spryker\Zed\Workflow\Business\Reader\StateMachineTransitionHandlerReader;
+use Spryker\Zed\Workflow\Business\Reader\StateMachineTransitionHandlerReaderInterface;
 use Spryker\Zed\Workflow\Business\Reader\TriggerEventReader;
 use Spryker\Zed\Workflow\Business\Reader\TriggerEventReaderInterface;
 use Spryker\Zed\Workflow\Business\Registry\PluginRegistry;
@@ -109,6 +111,13 @@ class WorkflowBusinessFactory extends AbstractBusinessFactory
         return new PluginRegistry(
             $this->getCommandPlugins(),
             $this->getConditionPlugins(),
+        );
+    }
+
+    public function createStateMachineTransitionHandlerReader(): StateMachineTransitionHandlerReaderInterface
+    {
+        return new StateMachineTransitionHandlerReader(
+            $this->createPluginRegistry(),
         );
     }
 

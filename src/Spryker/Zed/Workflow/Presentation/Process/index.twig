@@ -18,6 +18,8 @@
             {{ processTable | raw }}
         {% endblock %}
     {% endembed %}
+
+    {% include '@Workflow/_partial/action-confirmation-modal.twig' %}
 {% endblock %}
 
 {% block footer_js %}

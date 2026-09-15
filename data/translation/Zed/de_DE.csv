@@ -62,6 +62,8 @@ Continue,Weiter
 "Validate definition","Definition validieren"
 Validating…,"Validierung läuft…"
 "The definition is valid.","Die Definition ist gültig."
+"This version is not valid yet. Fix the issues below, then save a new version. The definition is validated again when you activate it.","Diese Version ist noch nicht gültig. Beheben Sie die untenstehenden Probleme und speichern Sie dann eine neue Version. Die Definition wird bei der Aktivierung erneut validiert."
+Event,Ereignis
 "Validation request failed. Please try again.","Die Validierungsanfrage ist fehlgeschlagen. Bitte versuchen Sie es erneut."
 "The definition has the following errors:","Die Definition enthält die folgenden Fehler:"
 "The currently active version %active% will be deactivated.","Die derzeit aktive Version %active% wird deaktiviert."
@@ -92,6 +94,7 @@ Delete,Löschen
 "Activate version","Version aktivieren"
 Cancel,Abbrechen
 "Create an editable copy","Bearbeitbare Kopie erstellen"
+Edit,Bearbeiten
 "Delete version","Version löschen"
 "The name may only contain letters, numbers, spaces, hyphens and underscores.","Der Name darf nur Buchstaben, Zahlen, Leerzeichen, Bindestriche und Unterstriche enthalten."
 "Could not trigger the event.","Das Event konnte nicht ausgelöst werden."
@@ -100,3 +103,63 @@ Cancel,Abbrechen
 "Workflow with ID %id% does not exist.","Workflow mit der ID %id% existiert nicht."
 "Workflow version with ID %id% does not exist.","Workflow-Version mit der ID %id% existiert nicht."
 "The workflow was not found.","Der Workflow wurde nicht gefunden."
+"Add at least one state.","Fügen Sie mindestens einen Zustand hinzu."
+"The initial state is not specified. Mark one state as the initial state.","Der Startzustand ist nicht angegeben. Markieren Sie einen Zustand als Startzustand."
+"Add state","Zustand hinzufügen"
+Undo,Rückgängig
+"Zoom in",Vergrößern
+"Zoom out",Verkleinern
+"Fit to screen","An Bildschirm anpassen"
+"Hover a state and click the + to add a connected state, or drag from a state’s edge to link existing states.","Bewegen Sie den Zeiger über einen Zustand und klicken Sie auf das +, um einen verbundenen Zustand hinzuzufügen, oder ziehen Sie vom Rand eines Zustands, um bestehende Zustände zu verknüpfen."
+"Read-only view. Select a state or transition to inspect its properties, or use the controls to zoom and pan.","Nur-Lese-Ansicht. Wählen Sie einen Zustand oder Übergang aus, um dessen Eigenschaften anzusehen, oder nutzen Sie die Steuerelemente zum Zoomen und Verschieben."
+"Select a state or transition on the canvas to edit its properties.","Wählen Sie auf der Zeichenfläche einen Zustand oder Übergang aus, um dessen Eigenschaften zu bearbeiten."
+"Select a state or transition on the canvas to inspect its properties.","Wählen Sie auf der Zeichenfläche einen Zustand oder Übergang aus, um dessen Eigenschaften anzusehen."
+Name,Name
+"Display name",Anzeigename
+"Delete state","Zustand löschen"
+Transition,Übergang
+"No event (condition-only)","Kein Event (nur Bedingung)"
+"+ New event","+ Neues Event"
+"Event type",Event-Typ
+"On enter (automatic)","Bei Eintritt (automatisch)"
+Timeout,Timeout
+Manual,Manuell
+"3 second","3 second"
+Command,Befehl
+None,Keine
+"Changes apply to every transition using this event.","Änderungen gelten für alle Übergänge, die dieses Event verwenden."
+Condition,Bedingung
+"Happy path","Happy Path"
+"Delete transition","Übergang löschen"
+"Advanced: raw XML","Erweitert: Roh-XML"
+"The XML could not be parsed. Fix the definition to update the canvas.","Das XML konnte nicht geparst werden. Korrigieren Sie die Definition, um die Zeichenfläche zu aktualisieren."
+"Edit the XML directly — valid changes are applied to the canvas as you type.","XML direkt bearbeiten — gültige Änderungen werden beim Tippen auf die Zeichenfläche übernommen."
+Selection,Auswahl
+"Selected elements:","Ausgewählte Elemente:"
+States:,Status:
+Transitions:,Übergänge:
+"Drag any selected state to move them together.","Ziehen Sie einen ausgewählten Status, um alle gemeinsam zu verschieben."
+"Delete selected","Auswahl löschen"
+"Hover a state to add or delete, drag from its edge to link, click its name to rename. Shift-click or shift-drag to select several, Delete to remove them.","Status überfahren, um hinzuzufügen oder zu löschen, von der Kante ziehen, um zu verbinden, auf den Namen klicken, um umzubenennen. Umschalt-Klick oder Umschalt-Ziehen wählt mehrere aus, Entf entfernt sie."
+"Undone: state added","Rückgängig: Status hinzugefügt"
+"Undone: connected state added","Rückgängig: verbundener Status hinzugefügt"
+"Undone: state renamed","Rückgängig: Status umbenannt"
+"Undone: state display name changed","Rückgängig: Anzeigename des Status geändert"
+"Undone: initial state changed","Rückgängig: Anfangsstatus geändert"
+"Undone: state deleted","Rückgängig: Status gelöscht"
+"Undone: transition added","Rückgängig: Übergang hinzugefügt"
+"Undone: transition deleted","Rückgängig: Übergang gelöscht"
+"Undone: selection deleted","Rückgängig: Auswahl gelöscht"
+"Undone: transition event changed","Rückgängig: Ereignis des Übergangs geändert"
+"Undone: event name changed","Rückgängig: Ereignisname geändert"
+"Undone: transition condition changed","Rückgängig: Bedingung des Übergangs geändert"
+"Undone: happy path changed","Rückgängig: Happy Path geändert"
+"Undone: event settings changed","Rückgängig: Ereigniseinstellungen geändert"
+"Undone: raw XML edit","Rückgängig: XML-Bearbeitung"
+"Undone: last change","Rückgängig: letzte Änderung"
+Auto-arrange,"Automatisch anordnen"
+"The definition has no states yet. The canvas keeps the last applied version.","Die Definition enthält noch keine Status. Die Zeichenfläche behält die zuletzt angewendete Version."
+"Press Enter to save the name, Escape to cancel.","Drücken Sie die Eingabetaste, um den Namen zu speichern, Esc zum Abbrechen."
+"No initial state is specified. Mark one state as the initial state.","Es ist kein Anfangsstatus angegeben. Markieren Sie einen Status als Anfangsstatus."
+"Initial state ""%s"" does not exist as a defined state.","Der Anfangsstatus ""%s"" existiert nicht als definierter Status."
+"Version could not be activated because it is invalid, please check the errors: %errors%","Die Version konnte nicht aktiviert werden, da sie ungültig ist. Bitte prüfen Sie die Fehler: %errors%"

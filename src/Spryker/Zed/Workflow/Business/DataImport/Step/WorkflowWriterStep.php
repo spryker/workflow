@@ -303,7 +303,6 @@ class WorkflowWriterStep implements DataImportStepInterface
             return [];
         }
 
-        // Comma is a plain, non-semantic value separator for the trigger_events column.
         $eventNames = array_map('trim', explode(',', $triggerEvents));
 
         return array_values(array_filter(array_unique($eventNames), static fn (string $eventName): bool => $eventName !== ''));

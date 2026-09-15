@@ -1,0 +1,238 @@
+{#
+    Visual state machine builder, shared by the version editor and the read-only version view.
+
+    Parameters:
+      readOnly       when true the diagram is inspect-only: no editing affordances, no undo, the
+                     inspector fields are disabled and the raw XML is a preview
+      definition     read-only only — the stored `state-machine-01` XML the model is hydrated from
+      initialState   read-only only — name of the initial state (the XML does not carry it)
+      canvasRenderer optional renderer key resolved through the renderer registry
+                     (window.WorkflowStateMachineRenderers); absent or unknown falls back to the
+                     bundled JointJS renderer
+
+    On the version editor the hidden `definition`/`initialState` form fields are the model's source
+    and sink; they live in the surrounding form, not in this partial.
+#}
+{% set readOnly = readOnly|default(false) %}
+{% set hintText = readOnly
+    ? 'Read-only view. Select a state or transition to inspect its properties, or use the controls to zoom and pan.' | trans
+    : 'Hover a state to add or delete, drag from its edge to link, click its name to rename. Shift-click or shift-drag to select several, Delete to remove them.' | trans %}
+
+<div class="js-state-machine-builder" data-qa="workflow-state-machine-builder"
+     {% if readOnly %}data-readonly="1" data-initial-state="{{ initialState|default('') }}"{% endif %}
+     {% if canvasRenderer is defined and canvasRenderer %}data-renderer="{{ canvasRenderer }}"{% endif %}
+     data-message-no-states="{{ 'Add at least one state.' | trans }}"
+     data-message-no-initial-state="{{ 'The initial state is not specified. Mark one state as the initial state.' | trans }}"
+     data-message-invalid-xml="{{ 'The XML could not be parsed. Fix the definition to update the canvas.' | trans }}"
+     data-message-incomplete-xml="{{ 'The definition has no states yet. The canvas keeps the last applied version.' | trans }}"
+     data-message-rename-hint="{{ 'Press Enter to save the name, Escape to cancel.' | trans }}">
+    <div class="row">
+        <div class="col-lg-9">
+            {# Icon-only controls; the hint sits on the same line so the canvas keeps its height. #}
+            <div class="workflow-builder-toolbar" role="toolbar">
+                {% if not readOnly %}
+                    <button type="button" class="btn btn-outline workflow-icon-button js-sm-add-state"
+                            data-qa="workflow-add-state" title="{{ 'Add state' | trans }}"
+                            aria-label="{{ 'Add state' | trans }}">
+                        <span class="material-symbols-outlined">add_box</span>
+                    </button>
+                    <button type="button" class="btn btn-outline workflow-icon-button js-sm-undo"
+                            data-qa="workflow-undo" disabled title="{{ 'Undo' | trans }}"
+                            aria-label="{{ 'Undo' | trans }}">
+                        <span class="material-symbols-outlined">undo</span>
+                    </button>
+                {% endif %}
+                <button type="button" class="btn btn-outline workflow-icon-button js-sm-zoom-in"
+                        data-qa="workflow-zoom-in" title="{{ 'Zoom in' | trans }}"
+                        aria-label="{{ 'Zoom in' | trans }}">
+                    <span class="material-symbols-outlined">zoom_in</span>
+                </button>
+                <button type="button" class="btn btn-outline workflow-icon-button js-sm-zoom-out"
+                        data-qa="workflow-zoom-out" title="{{ 'Zoom out' | trans }}"
+                        aria-label="{{ 'Zoom out' | trans }}">
+                    <span class="material-symbols-outlined">zoom_out</span>
+                </button>
+                <button type="button" class="btn btn-outline workflow-icon-button js-sm-zoom-fit"
+                        data-qa="workflow-zoom-fit" title="{{ 'Fit to screen' | trans }}"
+                        aria-label="{{ 'Fit to screen' | trans }}">
+                    <span class="material-symbols-outlined">fit_screen</span>
+                </button>
+                {# Re-runs the directed-graph layout over the whole diagram. Positions are view
+                   state, so this changes nothing in the definition and is offered read-only too. #}
+                <button type="button" class="btn btn-outline workflow-icon-button js-sm-auto-arrange"
+                        data-qa="workflow-auto-arrange" title="{{ 'Auto-arrange' | trans }}"
+                        aria-label="{{ 'Auto-arrange' | trans }}">
+                    <span class="material-symbols-outlined">schema</span>
+                </button>
+                <span class="workflow-builder-hint js-sm-canvas-hint">
+                    {{ hintText }}
+                </span>
+            </div>
+            <div class="workflow-canvas js-sm-canvas" data-qa="workflow-canvas"></div>
+        </div>
+
+        <div class="col-lg-3">
+            {# Contextual inspector for the selected state / transition #}
+            <div class="workflow-inspector js-sm-inspector" data-qa="workflow-inspector">
+                <div class="js-sm-inspector-empty">
+                    <h5>{{ 'State' | trans }}</h5>
+                    <div class="workflow-inspector-placeholder">
+                        <span class="material-symbols-outlined">flowchart</span>
+                        <p>
+                            {% if readOnly %}
+                                {{ 'Select a state or transition on the canvas to inspect its properties.' | trans }}
+                            {% else %}
+                                {{ 'Select a state or transition on the canvas to edit its properties.' | trans }}
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <fieldset class="workflow-inspector-fields" {% if readOnly %}disabled{% endif %}>
+                    {# Multi-selection summary. Several entities cannot share one set of field
+                       controls, so the panel reports what is selected and offers the bulk delete;
+                       the counts are filled in by JS into the spans below. #}
+                    <div class="hidden js-sm-multi-inspector" data-qa="workflow-multi-inspector">
+                        <h5>{{ 'Selection' | trans }}</h5>
+                        <p class="workflow-inspector-label">
+                            {{ 'Selected elements:' | trans }} <strong class="js-sm-multi-count">0</strong>
+                        </p>
+                        <p class="text-muted small">
+                            {{ 'States:' | trans }} <span class="js-sm-multi-state-count">0</span> ·
+                            {{ 'Transitions:' | trans }} <span class="js-sm-multi-transition-count">0</span>
+                        </p>
+                        <p class="text-muted small">{{ 'Drag any selected state to move them together.' | trans }}</p>
+                        {% if not readOnly %}
+                            <button type="button" class="btn btn-sm btn-danger js-sm-delete-selection"
+                                    data-qa="workflow-delete-selection">
+                                <span class="material-symbols-outlined align-middle">delete</span> {{ 'Delete selected' | trans }}
+                            </button>
+                        {% endif %}
+                    </div>
+
+                    {# State inspector #}
+                    <div class="hidden js-sm-state-inspector">
+                        <h5>{{ 'State' | trans }}</h5>
+                        <div class="form-group">
+                            <label class="workflow-inspector-label">{{ 'Name' | trans }}</label>
+                            <input type="text" class="form-control js-sm-state-name" data-qa="workflow-state-name">
+                        </div>
+                        <div class="form-group">
+                            <label class="workflow-inspector-label">{{ 'Display name' | trans }}</label>
+                            <input type="text" class="form-control js-sm-state-display" data-qa="workflow-state-display">
+                        </div>
+                        <div class="checkbox">
+                            <label class="workflow-inspector-label">
+                                <input type="checkbox" class="js-sm-state-initial" data-qa="workflow-state-initial">
+                                {{ 'Initial state' | trans }}
+                            </label>
+                        </div>
+                        {% if not readOnly %}
+                            <button type="button" class="btn btn-sm btn-danger js-sm-delete-state" data-qa="workflow-delete-state">
+                                <span class="material-symbols-outlined align-middle">delete</span> {{ 'Delete state' | trans }}
+                            </button>
+                        {% endif %}
+                    </div>
+
+                    {# Transition inspector. The event name is entered as free text — events are
+                       one-time in practice, so each transition names its own event; the fields
+                       below edit that event. Leaving the name empty makes it a condition-only
+                       transition. #}
+                    <div class="hidden js-sm-transition-inspector">
+                        <h5>{{ 'Transition' | trans }}</h5>
+                        <div class="form-group">
+                            <label class="workflow-inspector-label">{{ 'Event' | trans }}</label>
+                            <input type="text" class="form-control js-sm-transition-event-name" data-qa="workflow-transition-event"
+                                   placeholder="{{ 'Event name (leave empty for condition-only)' | trans }}">
+                        </div>
+                        <div class="hidden js-sm-event-details">
+                            <div class="form-group">
+                                <label class="workflow-inspector-label">{{ 'Event type' | trans }}</label>
+                                <select class="form-control js-sm-event-type" data-qa="workflow-event-type">
+                                    <option value="">{{ 'None' | trans }}</option>
+                                    <option value="onEnter">{{ 'On enter (automatic)' | trans }}</option>
+                                    <option value="timeout">{{ 'Timeout' | trans }}</option>
+                                    <option value="manual">{{ 'Manual' | trans }}</option>
+                                </select>
+                            </div>
+                            <div class="form-group hidden js-sm-event-timeout-group">
+                                <label class="workflow-inspector-label">{{ 'Timeout' | trans }}</label>
+                                <input type="text" class="form-control js-sm-event-timeout" data-qa="workflow-event-timeout"
+                                       placeholder="{{ '3 second' | trans }}">
+                            </div>
+                            <div class="form-group">
+                                <label class="workflow-inspector-label">{{ 'Command' | trans }}</label>
+                                <select class="form-control js-sm-event-command" data-qa="workflow-event-command">
+                                    <option value="">{{ 'None' | trans }}</option>
+                                </select>
+                            </div>
+                            <p class="text-muted small">{{ 'Changes apply to every transition using this event.' | trans }}</p>
+                        </div>
+                        <div class="form-group">
+                            <label class="workflow-inspector-label">{{ 'Condition' | trans }}</label>
+                            <select class="form-control js-sm-transition-condition" data-qa="workflow-transition-condition">
+                                <option value="">{{ 'None' | trans }}</option>
+                            </select>
+                        </div>
+                        <div class="checkbox">
+                            <label class="workflow-inspector-label">
+                                <input type="checkbox" class="js-sm-transition-happy" data-qa="workflow-transition-happy">
+                                {{ 'Happy path' | trans }}
+                            </label>
+                        </div>
+                        {% if not readOnly %}
+                            <button type="button" class="btn btn-sm btn-danger js-sm-delete-transition" data-qa="workflow-delete-transition">
+                                <span class="material-symbols-outlined align-middle">delete</span> {{ 'Delete transition' | trans }}
+                            </button>
+                        {% endif %}
+                    </div>
+                </fieldset>
+            </div>
+        </div>
+    </div>
+
+    {# The undo button announces one of these sentences; it sits too deep in JS to reach Twig, so
+       the translated strings are inlined here as JSON. JSON_HEX_TAG keeps a translation containing
+       "</script>" from closing the block early. The canvas itself draws only values from the
+       definition, so it needs no wording. #}
+    {% if not readOnly %}
+        <script type="application/json" class="js-sm-undo-labels">{{ {
+            'addState': 'Undone: state added' | trans,
+            'addConnectedState': 'Undone: connected state added' | trans,
+            'renameState': 'Undone: state renamed' | trans,
+            'setStateDisplay': 'Undone: state display name changed' | trans,
+            'setInitialState': 'Undone: initial state changed' | trans,
+            'deleteState': 'Undone: state deleted' | trans,
+            'addTransition': 'Undone: transition added' | trans,
+            'deleteTransition': 'Undone: transition deleted' | trans,
+            'deleteEntities': 'Undone: selection deleted' | trans,
+            'setTransitionEvent': 'Undone: transition event changed' | trans,
+            'setTransitionEventName': 'Undone: event name changed' | trans,
+            'setTransitionCondition': 'Undone: transition condition changed' | trans,
+            'setTransitionHappy': 'Undone: happy path changed' | trans,
+            'updateEvent': 'Undone: event settings changed' | trans,
+            'applyDefinitionModel': 'Undone: raw XML edit' | trans,
+            'genericUndo': 'Undone: last change' | trans,
+        } | json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP')) | raw }}</script>
+    {% endif %}
+
+    {# Advanced: raw XML. On the editor it is a two-way escape hatch — hand edits are parsed back
+       into the model and update the canvas live. Read-only it previews the stored definition and
+       doubles as the source the model is hydrated from. #}
+    <div class="panel panel-default m-t-md js-sm-advanced">
+        <div class="panel-heading workflow-advanced-heading">
+            <button type="button" class="workflow-advanced-toggle js-sm-advanced-toggle"
+                    data-qa="workflow-advanced-toggle" aria-expanded="false">
+                <span class="material-symbols-outlined">code</span> {{ 'Advanced: raw XML' | trans }}
+            </button>
+        </div>
+        <div class="panel-body hidden js-sm-advanced-body">
+            {% if not readOnly %}
+                <p class="text-muted small">{{ 'Edit the XML directly — valid changes are applied to the canvas as you type.' | trans }}</p>
+            {% endif %}
+            <div class="alert alert-danger hidden js-sm-xml-error" data-qa="workflow-xml-error"></div>
+            <textarea class="form-control workflow-xml-editor js-sm-xml-editor" data-qa="workflow-xml-editor" rows="16"
+                      spellcheck="false" {% if readOnly %}readonly{% endif %}>{{ definition|default('') }}</textarea>
+        </div>
+    </div>
+</div>

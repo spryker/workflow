@@ -181,12 +181,12 @@ class DefinitionCollectionTest extends Unit
         $stateMachineDefinitionValidationResponseTransfer = $this->tester->getFacade()
             ->validateStateMachineProcessDefinition($stateMachineProcessDefinitionTransfer);
 
-        // Assert - an empty initial state is rejected the same way as an unknown one.
+        // Assert - a missing initial state gets a distinct, clearer message than a named-but-undefined one.
         $this->assertFalse($stateMachineDefinitionValidationResponseTransfer->getIsValid());
         $this->assertValidationError(
             $stateMachineDefinitionValidationResponseTransfer,
             'missing_initial_state',
-            'Initial state "" does not exist as a defined state.',
+            'No initial state is specified. Mark one state as the initial state.',
         );
     }
 

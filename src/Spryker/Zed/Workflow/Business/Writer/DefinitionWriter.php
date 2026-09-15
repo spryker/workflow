@@ -84,14 +84,6 @@ class DefinitionWriter implements DefinitionWriterInterface
                 $stateMachineProcessDefinitionTransfer->setVersion(($maximumExistingVersion ?? 0) + 1);
             }
 
-            $stateMachineDefinitionValidationResponseTransfer = $this->definitionValidator->validate($stateMachineProcessDefinitionTransfer);
-
-            if (!$stateMachineDefinitionValidationResponseTransfer->getIsValid()) {
-                $this->addValidationErrors($stateMachineDefinitionValidationResponseTransfer, $stateMachineProcessDefinitionCollectionResponseTransfer);
-
-                continue;
-            }
-
             $stateMachineProcessDefinitionTransfer = $this->transitionFlagExpander
                 ->expandWithTransitionFlags($stateMachineProcessDefinitionTransfer)
                 ->setStatus(WorkflowConfig::PROCESS_DEFINITION_STATUS_INACTIVE);
@@ -272,7 +264,9 @@ class DefinitionWriter implements DefinitionWriterInterface
                 ->addIdStateMachineProcess($stateMachineProcessDefinitionTransfer->getStateMachineProcessOrFail()->getIdStateMachineProcessOrFail()),
         );
 
-        $stateMachineProcessDefinitionTransfer->setStatus(WorkflowConfig::PROCESS_DEFINITION_STATUS_ACTIVE);
+        $stateMachineProcessDefinitionTransfer = $this->transitionFlagExpander
+            ->expandWithTransitionFlags($stateMachineProcessDefinitionTransfer)
+            ->setStatus(WorkflowConfig::PROCESS_DEFINITION_STATUS_ACTIVE);
         $this->workflowEntityManager->updateStateMachineProcessDefinition($stateMachineProcessDefinitionTransfer);
         $stateMachineProcessDefinitionCollectionResponseTransfer->addStateMachineProcessDefinition($stateMachineProcessDefinitionTransfer);
     }

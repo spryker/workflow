@@ -14,10 +14,11 @@ class InitialStateRule implements DefinitionValidationRuleInterface
 {
     use StateNameCollectorTrait;
 
-    /**
-     * @var string
-     */
-    protected const VALIDATION_ERROR_TYPE_MISSING_INITIAL_STATE = 'missing_initial_state';
+    protected const string VALIDATION_ERROR_TYPE_MISSING_INITIAL_STATE = 'missing_initial_state';
+
+    protected const string MESSAGE_INITIAL_STATE_MISSING = 'No initial state is specified. Mark one state as the initial state.';
+
+    protected const string MESSAGE_INITIAL_STATE_NOT_DEFINED = 'Initial state "%s" does not exist as a defined state.';
 
     public function validate(
         DefinitionValidationContext $definitionValidationContext,
@@ -25,14 +26,48 @@ class InitialStateRule implements DefinitionValidationRuleInterface
     ): void {
         $stateNames = $this->collectStateNames($definitionValidationContext->getRootElement());
         $initialState = $definitionValidationContext->getStateMachineProcessDefinition()->getInitialState();
-        if ($initialState !== null && in_array($initialState, $stateNames, true)) {
+
+        if ($this->addErrorWhenInitialStateMissing($initialState, $stateMachineDefinitionValidationResponseTransfer)) {
+            return;
+        }
+
+        $this->addErrorWhenInitialStateNotDefined((string)$initialState, $stateNames, $stateMachineDefinitionValidationResponseTransfer);
+    }
+
+    protected function addErrorWhenInitialStateMissing(
+        ?string $initialState,
+        StateMachineDefinitionValidationResponseTransfer $stateMachineDefinitionValidationResponseTransfer
+    ): bool {
+        if ($initialState !== null && $initialState !== '') {
+            return false;
+        }
+
+        $stateMachineDefinitionValidationResponseTransfer->addError(
+            (new StateMachineDefinitionValidationErrorTransfer())
+                ->setType(static::VALIDATION_ERROR_TYPE_MISSING_INITIAL_STATE)
+                ->setMessage(static::MESSAGE_INITIAL_STATE_MISSING)
+                ->setStateName($initialState),
+        );
+
+        return true;
+    }
+
+    /**
+     * @param array<string> $stateNames
+     */
+    protected function addErrorWhenInitialStateNotDefined(
+        string $initialState,
+        array $stateNames,
+        StateMachineDefinitionValidationResponseTransfer $stateMachineDefinitionValidationResponseTransfer
+    ): void {
+        if (in_array($initialState, $stateNames, true)) {
             return;
         }
 
         $stateMachineDefinitionValidationResponseTransfer->addError(
             (new StateMachineDefinitionValidationErrorTransfer())
                 ->setType(static::VALIDATION_ERROR_TYPE_MISSING_INITIAL_STATE)
-                ->setMessage(sprintf('Initial state "%s" does not exist as a defined state.', (string)$initialState))
+                ->setMessage(sprintf(static::MESSAGE_INITIAL_STATE_NOT_DEFINED, $initialState))
                 ->setStateName($initialState),
         );
     }

@@ -11,13 +11,12 @@ use Orm\Zed\Workflow\Persistence\Map\SpyStateMachineProcessDefinitionTableMap;
 use Orm\Zed\Workflow\Persistence\SpyStateMachineProcessDefinitionInstanceQuery;
 use Orm\Zed\Workflow\Persistence\SpyStateMachineProcessDefinitionQuery;
 use Spryker\Service\UtilText\Model\Url\Url;
-use Spryker\Zed\Gui\Communication\Table\AbstractTable;
 use Spryker\Zed\Gui\Communication\Table\TableConfiguration;
 use Spryker\Zed\Workflow\Communication\Form\VersionActivationForm;
 use Spryker\Zed\Workflow\Communication\Form\VersionDeleteForm;
 use Spryker\Zed\Workflow\WorkflowConfig;
 
-class VersionTable extends AbstractTable
+class VersionTable extends AbstractConfirmationActionTable
 {
     /**
      * @uses \Spryker\Zed\Workflow\Communication\Controller\VersionController::viewAction()
@@ -65,17 +64,6 @@ class VersionTable extends AbstractTable
      * @var string
      */
     protected const string COL_ACTIONS = 'actions';
-
-    /**
-     * @uses \Spryker\Zed\Workflow\Presentation\_partial\action-confirmation-modal.twig
-     */
-    protected const string ATTRIBUTE_CONFIRM = 'data-confirm';
-
-    protected const string ATTRIBUTE_CONFIRM_TITLE = 'data-confirm-title';
-
-    protected const string ATTRIBUTE_CONFIRM_MESSAGE = 'data-confirm-message';
-
-    protected const string ATTRIBUTE_CONFIRM_BUTTON = 'data-confirm-button';
 
     protected const string EDIT_CONFIRMATION_TITLE = 'Create an editable copy';
 
@@ -219,12 +207,11 @@ class VersionTable extends AbstractTable
                 static::REQUEST_PARAM_ID_DEFINITION => $idStateMachineProcessDefinition,
             ]),
             'Edit',
-            [
-                static::ATTRIBUTE_CONFIRM => '1',
-                static::ATTRIBUTE_CONFIRM_TITLE => $this->translateForAttribute(static::EDIT_CONFIRMATION_TITLE),
-                static::ATTRIBUTE_CONFIRM_MESSAGE => $this->translateForAttribute(static::EDIT_CONFIRMATION_MESSAGE),
-                static::ATTRIBUTE_CONFIRM_BUTTON => $this->translateForAttribute(static::EDIT_CONFIRMATION_BUTTON),
-            ],
+            $this->buildConfirmationAttributes(
+                static::EDIT_CONFIRMATION_TITLE,
+                static::EDIT_CONFIRMATION_MESSAGE,
+                static::EDIT_CONFIRMATION_BUTTON,
+            ),
         );
 
         if ($item[SpyStateMachineProcessDefinitionTableMap::COL_STATUS] === WorkflowConfig::PROCESS_DEFINITION_STATUS_ACTIVE) {
@@ -264,27 +251,15 @@ class VersionTable extends AbstractTable
                 [
                     static::BUTTON_ICON => 'fa-trash',
                     static::BUTTON_CLASS => 'btn-danger',
-                    static::ATTRIBUTE_CONFIRM => '1',
-                    static::ATTRIBUTE_CONFIRM_TITLE => $this->translateForAttribute(static::DELETE_CONFIRMATION_TITLE),
-                    static::ATTRIBUTE_CONFIRM_MESSAGE => $this->translateForAttribute(static::DELETE_CONFIRMATION_MESSAGE),
-                    static::ATTRIBUTE_CONFIRM_BUTTON => $this->translateForAttribute(static::DELETE_CONFIRMATION_BUTTON),
-                ],
+                ] + $this->buildConfirmationAttributes(
+                    static::DELETE_CONFIRMATION_TITLE,
+                    static::DELETE_CONFIRMATION_MESSAGE,
+                    static::DELETE_CONFIRMATION_BUTTON,
+                ),
             );
         }
 
         return $buttons;
-    }
-
-    /**
-     * The button template injects attributes with `| raw`, so the translated value is escaped here to
-     * keep quotes in a translation from breaking out of the attribute.
-     */
-    protected function translateForAttribute(string $key): string
-    {
-        $translator = $this->getTranslator();
-        $message = $translator !== null ? $translator->trans($key) : $key;
-
-        return htmlspecialchars($message, \ENT_QUOTES, 'UTF-8');
     }
 
     protected function hasInstances(int $idStateMachineProcessDefinition): bool

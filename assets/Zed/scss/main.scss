@@ -1,0 +1,216 @@
+// Workflow visual builder — the CHROME around the canvas only: the toolbar, the hint line, the
+// inspector labels and the raw-XML editor.
+//
+// The canvas surface itself and everything drawn on it (state boxes, links, labels, handles, hover
+// affordances) belong to the renderer, which paints them from the theme tokens in
+// assets/Zed/js/modules/state-machine-canvas-shared.js. Nothing here duplicates those tokens —
+// deliberately, so there is no pair of values to keep in sync.
+
+$workflow-border: #e5e5e5;
+$workflow-muted-text: #737373;
+$workflow-icon-button-size: 32px;
+$workflow-toolbar-gap: 10px;
+
+// The band above the canvas: tall enough for the hint to run to two lines. The inspector heading is
+// sized to the same band so both columns start on one line no matter how the hint wraps.
+$workflow-header-band: 44px;
+
+// Vertical rhythm of the header lines above the canvas: every item on one centred baseline.
+.workflow-parent-context,
+.workflow-builder-toolbar {
+    display: flex;
+    align-items: center;
+}
+
+.workflow-parent-context {
+    flex-wrap: wrap;
+}
+
+// Pinned to the header band: it must not grow with its content, or the canvas moves down while the
+// inspector next to it stays put and the two columns stop starting on one line.
+.workflow-builder-toolbar {
+    flex-wrap: nowrap;
+    gap: 8px;
+    height: $workflow-header-band;
+    margin-bottom: $workflow-toolbar-gap;
+
+    // Each control is a self-contained square button, spaced by the toolbar's own gap rather than
+    // joined into a button group — a group makes its buttons share borders and breaks the row's
+    // vertical centring, because the group, not the button, becomes the flex item.
+    //
+    // Nested to outrank the theme's `.float-e-margins .btn` bottom margin: flexbox centres the
+    // margin box, so that margin would sit every button half of it above the row's centre line.
+    .workflow-icon-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        width: $workflow-icon-button-size;
+        height: $workflow-icon-button-size;
+        padding: 0;
+        margin: 0;
+        border-radius: 8px;
+
+        .material-symbols-outlined {
+            font-size: 18px;
+            line-height: 1;
+        }
+    }
+}
+
+// The full sentence, wrapping to the two lines the band allows; clamped there so a translation
+// that runs longer cannot push the band open.
+.workflow-builder-hint {
+    display: -webkit-box;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    color: $workflow-muted-text;
+    line-height: 1.35;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+// The canvas column carries the toolbar row above the drawing area, so the sidebar's own heading
+// occupies exactly that band: whatever follows it — the placeholder card, or a panel's first field —
+// then starts on the canvas's top edge. Derived from the toolbar's metrics so the two stay aligned
+// if either changes.
+.workflow-inspector h5 {
+    display: flex;
+    align-items: center;
+    height: $workflow-header-band;
+    margin: 0 0 $workflow-toolbar-gap;
+}
+
+// The undo announcement: an ordinary Back Office alert, but out of the flow and over the canvas's
+// own top-right corner. The layout renders flash messages above the page content, so an in-flow
+// message would push the whole diagram down every time undo is pressed; the window's corner, in
+// turn, was far enough from the diagram to be missed.
+.js-sm-undo-flash {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 1;
+    max-width: 420px;
+    margin: 0;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 15%);
+}
+
+// The inline state-name editor the canvas opens on a click. Positioned and sized by the renderer;
+// only its look lives here — and its look is nothing at all: no frame, no ground, no focus ring, so
+// what the user sees is the state's own name turning editable in place. The renderer hides the
+// drawn label meanwhile, so only this text shows.
+.workflow-canvas-inline-editor {
+    z-index: 1;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    text-align: center;
+
+    &:focus {
+        outline: none;
+    }
+}
+
+.workflow-canvas {
+    position: relative;
+    height: 520px;
+    border: 1px solid $workflow-border;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+// Empty inspector: a dashed drop-zone-style card rather than a bare sentence, so the sidebar reads
+// as a panel waiting for a selection instead of as stray text.
+.workflow-inspector-placeholder {
+    padding: 16px;
+    border: 1px dashed $workflow-border;
+    border-radius: 8px;
+    color: $workflow-muted-text;
+
+    // The theme sizes the icon font through a rule of equal specificity that wins on order, so the
+    // override needs the extra class to take effect.
+    &.workflow-inspector-placeholder .material-symbols-outlined {
+        font-size: 32px;
+        line-height: 1;
+    }
+
+    p {
+        margin: 8px 0 0;
+    }
+}
+
+// The page action buttons mix text-only and icon+text labels, and the theme sizes them by their
+// content, so an icon makes a button taller than its neighbour. One height for the whole row.
+.title-action .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 36px;
+
+    .material-symbols-outlined {
+        font-size: 18px;
+        line-height: 1;
+    }
+}
+
+// The Zed theme renders select.form-control as an auto-width inline-block, which would leave the
+// label sitting beside the control and let a long option push the select out of the sidebar. Every
+// field in the inspector reads the same way instead: label on its own line, control across the
+// full width.
+.workflow-inspector-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: $workflow-muted-text;
+}
+
+.workflow-inspector-fields {
+    // A disabled fieldset greys out its controls; the read-only view page still has to read them.
+    &[disabled] {
+        opacity: 0.9;
+    }
+
+    // Outranks the theme's `.form-group label` rule, which is inline-block.
+    .workflow-inspector-label {
+        display: block;
+    }
+
+    select.form-control {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .checkbox .workflow-inspector-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+}
+
+// The accordion opens on the whole bar, not just on its label: the heading hands its padding to a
+// full-width button, which keeps the theme's heading border while making the entire row the control.
+.workflow-advanced-heading {
+    padding: 0;
+}
+
+.workflow-advanced-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 15px 20px;
+    background: none;
+    border: 0;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.workflow-xml-editor {
+    font-family: monospace;
+    font-size: 12px;
+}

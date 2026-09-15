@@ -114,6 +114,14 @@ class WorkflowEntityManager extends AbstractEntityManager implements WorkflowEnt
         }
 
         $stateMachineProcessDefinitionEntity->setStatus($stateMachineProcessDefinitionTransfer->getStatusOrFail());
+        if ($stateMachineProcessDefinitionTransfer->getHasConditionTransitions() !== null) {
+            $stateMachineProcessDefinitionEntity->setHasConditionTransitions($stateMachineProcessDefinitionTransfer->getHasConditionTransitions());
+        }
+
+        if ($stateMachineProcessDefinitionTransfer->getHasTimeoutTransitions() !== null) {
+            $stateMachineProcessDefinitionEntity->setHasTimeoutTransitions($stateMachineProcessDefinitionTransfer->getHasTimeoutTransitions());
+        }
+
         $stateMachineProcessDefinitionEntity->save();
     }
 

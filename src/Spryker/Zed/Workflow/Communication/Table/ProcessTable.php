@@ -12,18 +12,24 @@ use Generated\Shared\Transfer\StateMachineTriggerEventCriteriaTransfer;
 use Orm\Zed\StateMachine\Persistence\Map\SpyStateMachineProcessTableMap;
 use Orm\Zed\StateMachine\Persistence\SpyStateMachineProcessQuery;
 use Orm\Zed\Workflow\Persistence\Map\SpyStateMachineProcessDefinitionTriggerTableMap;
+use Orm\Zed\Workflow\Persistence\SpyStateMachineProcessDefinition;
 use Orm\Zed\Workflow\Persistence\SpyStateMachineProcessDefinitionQuery;
 use Orm\Zed\Workflow\Persistence\SpyStateMachineProcessDefinitionTriggerQuery;
 use Propel\Runtime\ActiveQuery\Criteria;
 use Spryker\Service\UtilText\Model\Url\Url;
-use Spryker\Zed\Gui\Communication\Table\AbstractTable;
 use Spryker\Zed\Gui\Communication\Table\TableConfiguration;
 use Spryker\Zed\Workflow\Business\WorkflowFacadeInterface;
 use Spryker\Zed\Workflow\Communication\Form\ProcessActivationForm;
 use Spryker\Zed\Workflow\WorkflowConfig;
 
-class ProcessTable extends AbstractTable
+class ProcessTable extends AbstractConfirmationActionTable
 {
+    protected const string EDIT_CONFIRMATION_TITLE = 'Create an editable copy';
+
+    protected const string EDIT_CONFIRMATION_MESSAGE = 'You are about to create an editable copy of this workflow. Your changes are saved as a new version - the current one keeps running. Continue?';
+
+    protected const string EDIT_CONFIRMATION_BUTTON = 'Continue';
+
     /**
      * @uses \Spryker\Zed\Workflow\Communication\Controller\VersionController::indexAction()
      *
@@ -37,6 +43,13 @@ class ProcessTable extends AbstractTable
      * @var string
      */
     protected const string URL_VERSION_VIEW = '/workflow/version/view';
+
+    /**
+     * @uses \Spryker\Zed\Workflow\Communication\Controller\VersionController::createAction()
+     *
+     * @var string
+     */
+    protected const string URL_VERSION_EDIT = '/workflow/version/create';
 
     /**
      * @uses \Spryker\Zed\Workflow\Communication\Controller\TriggerController::indexAction()
@@ -192,10 +205,7 @@ class ProcessTable extends AbstractTable
 
     protected function findActiveVersion(int $idStateMachineProcess): string
     {
-        $stateMachineProcessDefinitionEntity = (clone $this->stateMachineProcessDefinitionQuery)
-            ->filterByFkStateMachineProcess($idStateMachineProcess)
-            ->filterByStatus(WorkflowConfig::PROCESS_DEFINITION_STATUS_ACTIVE)
-            ->findOne();
+        $stateMachineProcessDefinitionEntity = $this->findActiveDefinitionEntity($idStateMachineProcess);
 
         if ($stateMachineProcessDefinitionEntity === null) {
             return '-';
@@ -208,6 +218,66 @@ class ProcessTable extends AbstractTable
             ]),
             (string)$stateMachineProcessDefinitionEntity->getVersion(),
         );
+    }
+
+    protected function findActiveDefinitionEntity(int $idStateMachineProcess): ?SpyStateMachineProcessDefinition
+    {
+        return (clone $this->stateMachineProcessDefinitionQuery)
+            ->filterByFkStateMachineProcess($idStateMachineProcess)
+            ->filterByStatus(WorkflowConfig::PROCESS_DEFINITION_STATUS_ACTIVE)
+            ->findOne();
+    }
+
+    protected function findDefaultDefinitionEntity(int $idStateMachineProcess): ?SpyStateMachineProcessDefinition
+    {
+        $stateMachineProcessDefinitionEntity = $this->findActiveDefinitionEntity($idStateMachineProcess);
+
+        if ($stateMachineProcessDefinitionEntity !== null) {
+            return $stateMachineProcessDefinitionEntity;
+        }
+
+        return (clone $this->stateMachineProcessDefinitionQuery)
+            ->filterByFkStateMachineProcess($idStateMachineProcess)
+            ->orderByVersion(Criteria::DESC)
+            ->findOne();
+    }
+
+    /**
+     * @return array<string>
+     */
+    protected function buildDefinitionLinks(int $idStateMachineProcess): array
+    {
+        $stateMachineProcessDefinitionEntity = $this->findDefaultDefinitionEntity($idStateMachineProcess);
+
+        if ($stateMachineProcessDefinitionEntity === null) {
+            return [];
+        }
+
+        $idStateMachineProcessDefinition = $stateMachineProcessDefinitionEntity->getIdStateMachineProcessDefinition();
+
+        return [
+            $this->generateViewButton(
+                Url::generate(static::URL_VERSION_VIEW, [
+                    static::REQUEST_PARAM_ID_DEFINITION => $idStateMachineProcessDefinition,
+                    static::REQUEST_PARAM_BACK => static::BACK_ORIGIN_PROCESS,
+                ]),
+                'View',
+            ),
+
+            $this->generateEditButton(
+                Url::generate(static::URL_VERSION_EDIT, [
+                    static::REQUEST_PARAM_ID_PROCESS => $idStateMachineProcess,
+                    static::REQUEST_PARAM_ID_DEFINITION => $idStateMachineProcessDefinition,
+                    static::REQUEST_PARAM_BACK => static::BACK_ORIGIN_PROCESS,
+                ]),
+                'Edit',
+                $this->buildConfirmationAttributes(
+                    static::EDIT_CONFIRMATION_TITLE,
+                    static::EDIT_CONFIRMATION_MESSAGE,
+                    static::EDIT_CONFIRMATION_BUTTON,
+                ),
+            ),
+        ];
     }
 
     protected function createTriggersLabels(int $idStateMachineProcess): string
@@ -285,7 +355,7 @@ class ProcessTable extends AbstractTable
     {
         $idStateMachineProcess = $item[SpyStateMachineProcessTableMap::COL_ID_STATE_MACHINE_PROCESS];
 
-        $buttons = [];
+        $buttons = $this->buildDefinitionLinks((int)$idStateMachineProcess);
         $buttons[] = $this->generateViewButton(
             Url::generate(static::URL_VERSION, [static::REQUEST_PARAM_ID_PROCESS => $idStateMachineProcess]),
             'Versions',

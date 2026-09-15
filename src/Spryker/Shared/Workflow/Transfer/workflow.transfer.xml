@@ -93,6 +93,21 @@
         <property name="pagination" type="Pagination"/>
     </transfer>
 
+    <transfer name="StateMachineTransitionHandlerConditions" strict="true">
+        <property name="subjectType" type="string"/>
+    </transfer>
+
+    <transfer name="StateMachineTransitionHandlerCriteria" strict="true">
+        <property name="stateMachineTransitionHandlerConditions" type="StateMachineTransitionHandlerConditions"/>
+        <property name="sortCollection" type="Sort[]" singular="sort"/>
+        <property name="pagination" type="Pagination"/>
+    </transfer>
+
+    <transfer name="StateMachineTransitionHandlerCollection" strict="true">
+        <property name="commandNames" type="string[]" singular="commandName"/>
+        <property name="conditionNames" type="string[]" singular="conditionName"/>
+    </transfer>
+
     <transfer name="StateMachineProcessCollection" strict="true">
         <property name="stateMachineProcesses" type="StateMachineProcess[]" singular="stateMachineProcess"/>
         <property name="pagination" type="Pagination"/>

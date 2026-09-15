@@ -62,6 +62,8 @@ Continue,Continue
 "Validate definition","Validate definition"
 Validating…,Validating…
 "The definition is valid.","The definition is valid."
+"This version is not valid yet. Fix the issues below, then save a new version. The definition is validated again when you activate it.","This version is not valid yet. Fix the issues below, then save a new version. The definition is validated again when you activate it."
+Event,Event
 "Validation request failed. Please try again.","Validation request failed. Please try again."
 "The definition has the following errors:","The definition has the following errors:"
 "The currently active version %active% will be deactivated.","The currently active version %active% will be deactivated."
@@ -92,6 +94,7 @@ Delete,Delete
 "Activate version","Activate version"
 Cancel,Cancel
 "Create an editable copy","Create an editable copy"
+Edit,Edit
 "Delete version","Delete version"
 "The name may only contain letters, numbers, spaces, hyphens and underscores.","The name may only contain letters, numbers, spaces, hyphens and underscores."
 "Could not trigger the event.","Could not trigger the event."
@@ -100,3 +103,63 @@ Cancel,Cancel
 "Workflow with ID %id% does not exist.","Workflow with ID %id% does not exist."
 "Workflow version with ID %id% does not exist.","Workflow version with ID %id% does not exist."
 "The workflow was not found.","The workflow was not found."
+"Add at least one state.","Add at least one state."
+"The initial state is not specified. Mark one state as the initial state.","The initial state is not specified. Mark one state as the initial state."
+"Add state","Add state"
+Undo,Undo
+"Zoom in","Zoom in"
+"Zoom out","Zoom out"
+"Fit to screen","Fit to screen"
+"Hover a state and click the + to add a connected state, or drag from a state’s edge to link existing states.","Hover a state and click the + to add a connected state, or drag from a state’s edge to link existing states."
+"Read-only view. Select a state or transition to inspect its properties, or use the controls to zoom and pan.","Read-only view. Select a state or transition to inspect its properties, or use the controls to zoom and pan."
+"Select a state or transition on the canvas to edit its properties.","Select a state or transition on the canvas to edit its properties."
+"Select a state or transition on the canvas to inspect its properties.","Select a state or transition on the canvas to inspect its properties."
+Name,Name
+"Display name","Display name"
+"Delete state","Delete state"
+Transition,Transition
+"No event (condition-only)","No event (condition-only)"
+"+ New event","+ New event"
+"Event type","Event type"
+"On enter (automatic)","On enter (automatic)"
+Timeout,Timeout
+Manual,Manual
+"3 second","3 second"
+Command,Command
+None,None
+"Changes apply to every transition using this event.","Changes apply to every transition using this event."
+Condition,Condition
+"Happy path","Happy path"
+"Delete transition","Delete transition"
+"Advanced: raw XML","Advanced: raw XML"
+"The XML could not be parsed. Fix the definition to update the canvas.","The XML could not be parsed. Fix the definition to update the canvas."
+"Edit the XML directly — valid changes are applied to the canvas as you type.","Edit the XML directly — valid changes are applied to the canvas as you type."
+Selection,Selection
+"Selected elements:","Selected elements:"
+States:,States:
+Transitions:,Transitions:
+"Drag any selected state to move them together.","Drag any selected state to move them together."
+"Delete selected","Delete selected"
+"Hover a state to add or delete, drag from its edge to link, click its name to rename. Shift-click or shift-drag to select several, Delete to remove them.","Hover a state to add or delete, drag from its edge to link, click its name to rename. Shift-click or shift-drag to select several, Delete to remove them."
+"Undone: state added","Undone: state added"
+"Undone: connected state added","Undone: connected state added"
+"Undone: state renamed","Undone: state renamed"
+"Undone: state display name changed","Undone: state display name changed"
+"Undone: initial state changed","Undone: initial state changed"
+"Undone: state deleted","Undone: state deleted"
+"Undone: transition added","Undone: transition added"
+"Undone: transition deleted","Undone: transition deleted"
+"Undone: selection deleted","Undone: selection deleted"
+"Undone: transition event changed","Undone: transition event changed"
+"Undone: event name changed","Undone: event name changed"
+"Undone: transition condition changed","Undone: transition condition changed"
+"Undone: happy path changed","Undone: happy path changed"
+"Undone: event settings changed","Undone: event settings changed"
+"Undone: raw XML edit","Undone: raw XML edit"
+"Undone: last change","Undone: last change"
+Auto-arrange,Auto-arrange
+"The definition has no states yet. The canvas keeps the last applied version.","The definition has no states yet. The canvas keeps the last applied version."
+"Press Enter to save the name, Escape to cancel.","Press Enter to save the name, Escape to cancel."
+"No initial state is specified. Mark one state as the initial state.","No initial state is specified. Mark one state as the initial state."
+"Initial state ""%s"" does not exist as a defined state.","Initial state ""%s"" does not exist as a defined state."
+"Version could not be activated because it is invalid, please check the errors: %errors%","Version could not be activated because it is invalid, please check the errors: %errors%"

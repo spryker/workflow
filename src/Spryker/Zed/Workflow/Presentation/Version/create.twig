@@ -7,9 +7,19 @@
 {% endblock %}
 
 {% block action %}
-    <a class="btn btn-back" href="{{ url('/workflow/version', {'id-process': idStateMachineProcess}) }}">
-        <span class="material-symbols-outlined">chevron_left</span> {{ 'Back to versions' | trans }}
+    <a class="btn btn-outline"
+       href="{{ url('/workflow/trigger', {'id-process': idStateMachineProcess}) }}"
+       data-qa="workflow-version-triggers">
+        <span class="material-symbols-outlined">account_tree</span> {{ 'Triggers' | trans }}
     </a>
+    <a class="btn btn-back" href="{{ backUrl }}">
+        <span class="material-symbols-outlined">chevron_left</span> {{ backLabel | trans }}
+    </a>
+{% endblock %}
+
+{% block head_css %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ assetsPath('css/spryker-zed-workflow-main.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -25,21 +35,42 @@
             {% endif %}
 
             <div class="js-definition-validation-result" data-qa="workflow-definition-validation-result"></div>
+
+            {# The subject-type-scoped command and condition names are inlined here so the visual builder
+               can populate its dropdowns without an extra request. JSON_HEX_TAG keeps a plugin name
+               containing "</script>" from closing this block early. #}
+            <script type="application/json" data-qa="workflow-available-plugins" class="js-workflow-available-plugins">
+                {{ availablePlugins | json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP')) | raw }}
+            </script>
+
             {{ form_start(versionForm, {'attr': {'class': 'js-version-form', 'data-qa': 'workflow-version-form'}}) }}
                 {{ form_row(versionForm.idStateMachineProcess) }}
-                {{ form_row(versionForm.initialState) }}
-                {{ form_row(versionForm.definition) }}
-                <button type="button"
-                        class="btn btn-secondary js-validate-definition-button"
-                        data-qa="workflow-validate-definition"
-                        data-validate-url="{{ url('/workflow/version/validate-definition') }}"
-                        data-message-validating="{{ 'Validating…' | trans }}"
-                        data-message-valid="{{ 'The definition is valid.' | trans }}"
-                        data-message-failed="{{ 'Validation request failed. Please try again.' | trans }}"
-                        data-message-heading="{{ 'The definition has the following errors:' | trans }}">
-                    {{ 'Validate definition' | trans }}
-                </button>
-                <button type="submit" class="btn btn-primary" data-qa="workflow-version-save">{{ 'Save' | trans }}</button>
+
+                {# The raw definition and initial-state fields are driven by the visual builder and kept
+                   hidden. The Advanced panel inside the builder exposes the raw XML as an escape hatch. #}
+                <div class="hidden js-version-fields">
+                    {{ form_row(versionForm.initialState) }}
+                    {{ form_row(versionForm.definition) }}
+                </div>
+
+                {% include '@Workflow/_partial/state-machine-builder.twig' with {
+                    readOnly: false,
+                    canvasRenderer: canvasRenderer|default(null),
+                } only %}
+
+                <div class="m-t-md">
+                    <button type="submit" class="btn btn-primary js-sm-save" data-qa="workflow-version-save">{{ 'Save' | trans }}</button>
+                    <button type="button"
+                            class="btn btn-secondary js-validate-definition-button"
+                            data-qa="workflow-validate-definition"
+                            data-validate-url="{{ url('/workflow/version/validate-definition') }}"
+                            data-message-validating="{{ 'Validating…' | trans }}"
+                            data-message-valid="{{ 'The definition is valid.' | trans }}"
+                            data-message-failed="{{ 'Validation request failed. Please try again.' | trans }}"
+                            data-message-heading="{{ 'The definition has the following errors:' | trans }}">
+                        {{ 'Validate definition' | trans }}
+                    </button>
+                </div>
             {{ form_end(versionForm) }}
         {% endblock %}
     {% endembed %}

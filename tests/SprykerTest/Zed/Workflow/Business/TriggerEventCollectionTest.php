@@ -61,7 +61,7 @@ class TriggerEventCollectionTest extends Unit
                 ),
         );
 
-        // Assert: the plugin's event is offered with its technical name, friendly name and description.
+        // Assert
         $this->assertCount(1, $stateMachineTriggerEventCollectionTransfer->getStateMachineTriggerEvents());
         $stateMachineTriggerEventTransfer = $stateMachineTriggerEventCollectionTransfer->getStateMachineTriggerEvents()->getIterator()->current();
         $this->assertSame(static::EVENT_NAME, $stateMachineTriggerEventTransfer->getEventName());
@@ -72,7 +72,7 @@ class TriggerEventCollectionTest extends Unit
 
     public function testGetStateMachineTriggerEventCollectionSkipsPluginsOfOtherSubjectTypes(): void
     {
-        // Arrange: the only registered plugin targets a different subject type than the process.
+        // Arrange
         $this->tester->setDependency(
             WorkflowDependencyProvider::PLUGINS_TRIGGER,
             [$this->createTriggerPlugin('some_other_subject_type')],
@@ -94,7 +94,7 @@ class TriggerEventCollectionTest extends Unit
 
     public function testGetStateMachineTriggerEventCollectionSkipsProcessWithoutSubjectType(): void
     {
-        // Arrange: a process created WITHOUT a subject type resolves to no trigger events.
+        // Arrange
         $this->tester->setDependency(WorkflowDependencyProvider::PLUGINS_TRIGGER, [$this->createTriggerPlugin()]);
         $stateMachineProcessTransfer = $this->createProcessWithoutSubjectType();
 

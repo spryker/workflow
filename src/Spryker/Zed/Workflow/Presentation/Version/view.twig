@@ -7,6 +7,22 @@
 {% endblock %}
 
 {% block action %}
+    {# Edit clones this version into the create form, exactly like the versions table's Edit action,
+       so it asks for the same confirmation — saving always produces a NEW version. The origin travels
+       with it, so the editor's Back button leads where this page's own Back leads. #}
+    {% set editParameters = {'id-process': idStateMachineProcess, 'id-definition': idStateMachineProcessDefinition} %}
+    {% if backOrigin %}
+        {% set editParameters = editParameters|merge({'back': backOrigin}) %}
+    {% endif %}
+    <a class="btn btn-create"
+       href="{{ url('/workflow/version/create', editParameters) }}"
+       data-qa="workflow-version-edit"
+       data-confirm="1"
+       data-confirm-title="{{ 'Create an editable copy' | trans }}"
+       data-confirm-message="{{ 'You are about to create an editable copy of this workflow. Your changes are saved as a new version - the current one keeps running. Continue?' | trans }}"
+       data-confirm-button="{{ 'Continue' | trans }}">
+        <span class="material-symbols-outlined">edit</span> {{ 'Edit' | trans }}
+    </a>
     <a class="btn btn-back" href="{{ backUrl }}">
         <span class="material-symbols-outlined">chevron_left</span> {{ backLabel | trans }}
     </a>
@@ -21,6 +37,11 @@
     {% endif %}
 {% endblock %}
 
+{% block head_css %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ assetsPath('css/spryker-zed-workflow-main.css') }}">
+{% endblock %}
+
 {% block content %}
     {% embed '@Gui/Partials/widget.twig' with { widget_title: 'Workflow graph' | trans } %}
         {% block widget_content %}
@@ -32,17 +53,48 @@
                 <span class="text-muted m-l-sm">{{ 'Version' | trans }}</span>
                 <span class="label label-default m-l-xs">{{ version }}</span>
                 <span class="text-muted m-l-sm">{{ 'Status' | trans }}</span>
-                <span class="label label-default m-l-xs">{{ status }}</span>
+                <span class="badge {{ isActive ? 'badge-outline-success' : 'badge-outline-dark' }} m-l-xs"
+                      data-qa="workflow-version-status">{{ status | trans }}</span>
             </div>
-            <img class="preview-image"
-                 src="{{ url('/state-machine/graph/draw', {process: processName, version: version, 'state-machine': stateMachineName}) }}"
-                 alt="{{ processName }}">
+
+            {# Unlike the server-drawn graph image this replaced, the read-only builder renders an
+               invalid definition too — which is exactly when the errors below need looking at. #}
+            {% if not isValid %}
+                <div class="alert alert-warning" data-qa="workflow-version-invalid-notice">
+                    {{ 'This version is not valid yet. Fix the issues below, then save a new version. The definition is validated again when you activate it.' | trans }}
+                </div>
+                {% if validationErrors is not empty %}
+                    <div class="alert alert-danger" data-qa="workflow-version-validation-errors">
+                        <strong>{{ 'The definition has the following errors:' | trans }}</strong>
+                        <ul class="m-t-sm m-b-none">
+                            {% for error in validationErrors %}
+                                <li data-qa="workflow-version-validation-error">
+                                    {{ error.message | trans }}
+                                    {% if error.stateName %}
+                                        <span class="text-muted">({{ 'State' | trans }}: {{ error.stateName }})</span>
+                                    {% elseif error.eventName %}
+                                        <span class="text-muted">({{ 'Event' | trans }}: {{ error.eventName }})</span>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+            {% endif %}
+
+            {% include '@Workflow/_partial/state-machine-builder.twig' with {
+                readOnly: true,
+                definition: definition,
+                initialState: initialState,
+                canvasRenderer: canvasRenderer|default(null),
+            } only %}
         {% endblock %}
     {% endembed %}
 
-    {% embed '@Gui/Partials/widget.twig' with { widget_title: 'Definition' | trans } %}
-        {% block widget_content %}
-            <pre>{{ definition }}</pre>
-        {% endblock %}
-    {% endembed %}
+    {% include '@Workflow/_partial/action-confirmation-modal.twig' %}
+{% endblock %}
+
+{% block footer_js %}
+    {{ parent() }}
+    <script src="{{ assetsPath('js/spryker-zed-workflow-main.js') }}"></script>
 {% endblock %}

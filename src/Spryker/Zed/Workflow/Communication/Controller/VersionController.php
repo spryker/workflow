@@ -11,6 +11,8 @@ use Generated\Shared\Transfer\StateMachineProcessDefinitionCollectionRequestTran
 use Generated\Shared\Transfer\StateMachineProcessDefinitionCollectionResponseTransfer;
 use Generated\Shared\Transfer\StateMachineProcessDefinitionTransfer;
 use Generated\Shared\Transfer\StateMachineProcessTransfer;
+use Generated\Shared\Transfer\StateMachineTransitionHandlerConditionsTransfer;
+use Generated\Shared\Transfer\StateMachineTransitionHandlerCriteriaTransfer;
 use Spryker\Service\UtilText\Model\Url\Url;
 use Spryker\Zed\Workflow\Communication\Form\VersionForm;
 use Spryker\Zed\Workflow\WorkflowConfig;
@@ -37,6 +39,10 @@ class VersionController extends AbstractWorkflowController
     protected const string PARAM_BACK = 'back';
 
     protected const string BACK_ORIGIN_PROCESS = 'process';
+
+    protected const string MESSAGE_VERSION_ACTIVATION_FAILED = 'Version could not be activated because it is invalid, please check the errors: %errors%';
+
+    protected const string VALIDATION_ERROR_SEPARATOR = '; ';
 
     /**
      * @param \Symfony\Component\HttpFoundation\Request $request
@@ -92,7 +98,19 @@ class VersionController extends AbstractWorkflowController
         $stateMachineProcessTransfer = $stateMachineProcessDefinitionTransfer->getStateMachineProcessOrFail();
         $idStateMachineProcess = $stateMachineProcessTransfer->getIdStateMachineProcessOrFail();
 
-        $backLink = $this->resolveBackLink((string)$request->query->get(static::PARAM_BACK), $idStateMachineProcess);
+        $backOrigin = (string)$request->query->get(static::PARAM_BACK);
+        $backLink = $this->resolveBackLink($backOrigin, $idStateMachineProcess);
+        $stateMachineDefinitionValidationResponseTransfer = $this->getFacade()
+            ->validateStateMachineProcessDefinition($stateMachineProcessDefinitionTransfer);
+
+        $validationErrors = [];
+        foreach ($stateMachineDefinitionValidationResponseTransfer->getErrors() as $stateMachineDefinitionValidationErrorTransfer) {
+            $validationErrors[] = [
+                'message' => $stateMachineDefinitionValidationErrorTransfer->getMessageOrFail(),
+                'stateName' => $stateMachineDefinitionValidationErrorTransfer->getStateName(),
+                'eventName' => $stateMachineDefinitionValidationErrorTransfer->getEventName(),
+            ];
+        }
 
         return $this->viewResponse([
             'stateMachineName' => $stateMachineProcessTransfer->getStateMachineName(),
@@ -100,11 +118,15 @@ class VersionController extends AbstractWorkflowController
             'version' => $stateMachineProcessDefinitionTransfer->getVersion(),
             'status' => $stateMachineProcessDefinitionTransfer->getStatus(),
             'definition' => $stateMachineProcessDefinitionTransfer->getDefinition(),
+            'initialState' => $stateMachineProcessDefinitionTransfer->getInitialState(),
             'idStateMachineProcess' => $idStateMachineProcess,
             'idStateMachineProcessDefinition' => $idStateMachineProcessDefinition,
             'isActive' => $stateMachineProcessDefinitionTransfer->getStatus() === WorkflowConfig::PROCESS_DEFINITION_STATUS_ACTIVE,
+            'isValid' => $stateMachineDefinitionValidationResponseTransfer->getIsValid(),
+            'validationErrors' => $validationErrors,
             'backUrl' => $backLink['url'],
             'backLabel' => $backLink['label'],
+            'backOrigin' => $backOrigin,
             'versionActivationForm' => $this->getFactory()->createVersionActivationForm()->createView(),
         ]);
     }
@@ -165,25 +187,38 @@ class VersionController extends AbstractWorkflowController
                     ->addStateMachineProcessDefinition($stateMachineProcessDefinitionTransfer),
             );
 
-            if ($stateMachineProcessDefinitionCollectionResponseTransfer->getErrors()->count() > 0) {
-                $this->addValidationErrorMessages($stateMachineProcessDefinitionCollectionResponseTransfer);
+            if ($stateMachineProcessDefinitionCollectionResponseTransfer->getErrors()->count() === 0) {
+                $this->addSuccessMessage('The version was saved.');
 
                 return $this->redirectResponse(
-                    Url::generate(static::URL_VERSION_CREATE, [static::PARAM_ID_PROCESS => $idStateMachineProcess])->build(),
+                    Url::generate(static::URL_VERSION_LIST, [static::PARAM_ID_PROCESS => $idStateMachineProcess])->build(),
                 );
             }
 
-            $this->addSuccessMessage('The version was saved.');
-
-            return $this->redirectResponse(
-                Url::generate(static::URL_VERSION_LIST, [static::PARAM_ID_PROCESS => $idStateMachineProcess])->build(),
-            );
+            $this->addValidationErrorMessages($stateMachineProcessDefinitionCollectionResponseTransfer);
         }
+
+        $subjectType = (string)$stateMachineProcessTransfer->getSubjectType();
+
+        $stateMachineTransitionHandlerCollectionTransfer = $this->getFacade()->getStateMachineTransitionHandlerCollection(
+            (new StateMachineTransitionHandlerCriteriaTransfer())->setStateMachineTransitionHandlerConditions(
+                (new StateMachineTransitionHandlerConditionsTransfer())->setSubjectType($subjectType),
+            ),
+        );
+
+        $backOrigin = (string)$request->query->get(static::PARAM_BACK);
+        $backLink = $this->resolveBackLink($backOrigin, $idStateMachineProcess);
 
         return $this->viewResponse([
             'versionForm' => $versionForm->createView(),
             'idStateMachineProcess' => $idStateMachineProcess,
             'processName' => $stateMachineProcessTransfer->getProcessName(),
+            'backUrl' => $backLink['url'],
+            'backLabel' => $backLink['label'],
+            'availablePlugins' => [
+                'commands' => $stateMachineTransitionHandlerCollectionTransfer->getCommandNames(),
+                'conditions' => $stateMachineTransitionHandlerCollectionTransfer->getConditionNames(),
+            ],
         ]);
     }
 
@@ -263,7 +298,7 @@ class VersionController extends AbstractWorkflowController
         );
 
         if ($stateMachineProcessDefinitionCollectionResponseTransfer->getErrors()->count() > 0) {
-            $this->addValidationErrorMessages($stateMachineProcessDefinitionCollectionResponseTransfer);
+            $this->addActivationValidationErrorMessage($stateMachineProcessDefinitionCollectionResponseTransfer);
 
             return $this->redirectResponse($this->buildVersionListUrl($stateMachineProcessDefinitionCollectionResponseTransfer));
         }
@@ -349,6 +384,24 @@ class VersionController extends AbstractWorkflowController
         foreach ($stateMachineProcessDefinitionCollectionResponseTransfer->getErrors() as $errorTransfer) {
             $this->addErrorMessage($errorTransfer->getMessageOrFail());
         }
+    }
+
+    protected function addActivationValidationErrorMessage(
+        StateMachineProcessDefinitionCollectionResponseTransfer $stateMachineProcessDefinitionCollectionResponseTransfer
+    ): void {
+        $errorMessages = [];
+        foreach ($stateMachineProcessDefinitionCollectionResponseTransfer->getErrors() as $errorTransfer) {
+            $errorMessages[] = $errorTransfer->getMessageOrFail();
+        }
+
+        if ($errorMessages === []) {
+            return;
+        }
+
+        $this->addErrorMessage(
+            static::MESSAGE_VERSION_ACTIVATION_FAILED,
+            ['%errors%' => implode(static::VALIDATION_ERROR_SEPARATOR, $errorMessages)],
+        );
     }
 
     protected function buildVersionListUrl(

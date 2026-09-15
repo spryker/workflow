@@ -25,6 +25,8 @@ use Generated\Shared\Transfer\StateMachineProcessDefinitionCriteriaTransfer;
 use Generated\Shared\Transfer\StateMachineProcessDefinitionInstanceCollectionTransfer;
 use Generated\Shared\Transfer\StateMachineProcessDefinitionInstanceCriteriaTransfer;
 use Generated\Shared\Transfer\StateMachineProcessDefinitionTransfer;
+use Generated\Shared\Transfer\StateMachineTransitionHandlerCollectionTransfer;
+use Generated\Shared\Transfer\StateMachineTransitionHandlerCriteriaTransfer;
 use Generated\Shared\Transfer\StateMachineTriggerEventCollectionTransfer;
 use Generated\Shared\Transfer\StateMachineTriggerEventCriteriaTransfer;
 
@@ -283,4 +285,18 @@ interface WorkflowFacadeInterface
      * @return int
      */
     public function checkDynamicTimeouts(): int;
+
+    /**
+     * Specification:
+     * - Returns the command and condition plugin names registered for the criteria conditions.
+     *
+     * @api
+     *
+     * @param \Generated\Shared\Transfer\StateMachineTransitionHandlerCriteriaTransfer $stateMachineTransitionHandlerCriteriaTransfer
+     *
+     * @return \Generated\Shared\Transfer\StateMachineTransitionHandlerCollectionTransfer
+     */
+    public function getStateMachineTransitionHandlerCollection(
+        StateMachineTransitionHandlerCriteriaTransfer $stateMachineTransitionHandlerCriteriaTransfer
+    ): StateMachineTransitionHandlerCollectionTransfer;
 }

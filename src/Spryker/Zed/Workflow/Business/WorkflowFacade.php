@@ -25,6 +25,8 @@ use Generated\Shared\Transfer\StateMachineProcessDefinitionCriteriaTransfer;
 use Generated\Shared\Transfer\StateMachineProcessDefinitionInstanceCollectionTransfer;
 use Generated\Shared\Transfer\StateMachineProcessDefinitionInstanceCriteriaTransfer;
 use Generated\Shared\Transfer\StateMachineProcessDefinitionTransfer;
+use Generated\Shared\Transfer\StateMachineTransitionHandlerCollectionTransfer;
+use Generated\Shared\Transfer\StateMachineTransitionHandlerCriteriaTransfer;
 use Generated\Shared\Transfer\StateMachineTriggerEventCollectionTransfer;
 use Generated\Shared\Transfer\StateMachineTriggerEventCriteriaTransfer;
 use Spryker\Zed\Kernel\Business\AbstractFacade;
@@ -292,5 +294,22 @@ class WorkflowFacade extends AbstractFacade implements WorkflowFacadeInterface
         return $this->getFactory()
             ->createTimeoutChecker()
             ->check();
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @api
+     *
+     * @param \Generated\Shared\Transfer\StateMachineTransitionHandlerCriteriaTransfer $stateMachineTransitionHandlerCriteriaTransfer
+     *
+     * @return \Generated\Shared\Transfer\StateMachineTransitionHandlerCollectionTransfer
+     */
+    public function getStateMachineTransitionHandlerCollection(
+        StateMachineTransitionHandlerCriteriaTransfer $stateMachineTransitionHandlerCriteriaTransfer
+    ): StateMachineTransitionHandlerCollectionTransfer {
+        return $this->getFactory()
+            ->createStateMachineTransitionHandlerReader()
+            ->getStateMachineTransitionHandlerCollection($stateMachineTransitionHandlerCriteriaTransfer);
     }
 }

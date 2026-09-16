@@ -12,6 +12,11 @@
     </a>
 {% endblock %}
 
+{% block head_css %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ assetsPath('css/spryker-zed-workflow-main.css') }}">
+{% endblock %}
+
 {% block content %}
     {% embed '@Gui/Partials/widget.twig' with { widget_title: 'Workflow graph' | trans } %}
         {% block widget_content %}
@@ -27,9 +32,13 @@
                 <span class="text-muted m-l-sm">{{ 'Current State' | trans }}</span>
                 <span class="label label-primary m-l-xs">{{ currentState | default('-') }}</span>
             </div>
-            <img class="preview-image"
-                 src="{{ url('/state-machine/graph/draw', {process: processName, version: version, 'state-machine': stateMachineName, 'highlight-state': currentState}) }}"
-                 alt="{{ processName }}">
+            {% include '@Workflow/_partial/state-machine-builder.twig' with {
+                readOnly: true,
+                definition: definition,
+                initialState: initialState,
+                currentState: currentState,
+                canvasRenderer: canvasRenderer|default(null),
+            } only %}
         {% endblock %}
     {% endembed %}
 
@@ -75,4 +84,9 @@
             {% endif %}
         {% endblock %}
     {% endembed %}
+{% endblock %}
+
+{% block footer_js %}
+    {{ parent() }}
+    <script src="{{ assetsPath('js/spryker-zed-workflow-main.js') }}"></script>
 {% endblock %}

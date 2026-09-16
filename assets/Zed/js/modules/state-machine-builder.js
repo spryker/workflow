@@ -142,6 +142,7 @@ class StateMachineBuilder {
         }
 
         this.positionByStateId = {};
+        this.edgeRouteByPair = {};
         this.canvas = this.createCanvas(root.dataset.renderer || '');
 
         this.inspector = new StateMachineInspector(root, this.model, readAvailablePlugins(), {
@@ -175,6 +176,12 @@ class StateMachineBuilder {
         this.canvas.zoomToFit();
     }
 
+    canvasViewport() {
+        const canvasElement = qs(this.root, '.js-sm-canvas');
+
+        return { width: canvasElement.clientWidth, height: canvasElement.clientHeight };
+    }
+
     createCanvas(requestedRendererName) {
         const RendererClass = getRendererRegistry().resolve(requestedRendererName);
         const callbacks = {
@@ -191,6 +198,8 @@ class StateMachineBuilder {
 
         return new RendererClass(qs(this.root, '.js-sm-canvas'), callbacks, this.positionByStateId, {
             readOnly: this.readOnly,
+            currentStateName: (this.root.dataset.currentState || '').trim(),
+            edgeRouteByPair: this.edgeRouteByPair,
         });
     }
 
@@ -213,7 +222,7 @@ class StateMachineBuilder {
         this.selection.retainExisting(this.model);
         this.relayoutWhenNeeded();
 
-        if (ensureStatePositions(this.model, this.positionByStateId)) {
+        if (ensureStatePositions(this.model, this.positionByStateId, this.canvasViewport(), this.edgeRouteByPair)) {
             this.layoutArrangement = this.currentArrangement();
         }
 

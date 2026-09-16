@@ -223,6 +223,7 @@ class InstanceTable extends AbstractTable
                 static::REQUEST_PARAM_IDENTIFIER => $identifier,
             ]),
             $label,
+            ['data-qa' => 'workflow-instance-view'],
         );
     }
 

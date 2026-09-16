@@ -37,6 +37,7 @@ const {
     isForwardInPair,
     parallelGroupKey,
     parallelOffset,
+    edgeRouteKey,
     perpendicularMidpointVertex,
     selfLoopVertices,
 } = require('./state-machine-edge-geometry');
@@ -58,6 +59,10 @@ const {
     THEME,
 } = require('./state-machine-canvas-shared');
 
+const CURRENT_STATE_TEST_SELECTOR = 'workflow-current-state';
+
+const LABEL_CORNER_RADIUS = 12;
+
 const SCALE_MIN = 0.3;
 const SCALE_MAX = 2.5;
 const SCALE_STEP = 1.2;
@@ -67,7 +72,7 @@ const PORT_OUT = 'out';
 
 const SELECTION_HIGHLIGHTER_ID = 'selection';
 
-const LABEL_HORIZONTAL_PADDING = 4;
+const LABEL_HORIZONTAL_PADDING = 10;
 const LABEL_VERTICAL_PADDING = 3;
 
 // Shifts along an edge (as a ratio of its length) tried, in order, when a label would otherwise
@@ -179,6 +184,7 @@ class StateMachineCanvasJoint extends AbstractStateMachineCanvas {
 
         this.elementByStateId = {};
         this.linkByTransitionId = {};
+        this.edgeRouteByPair = (options && options.edgeRouteByPair) || {};
 
         this.affordanceElementView = null;
         this.affordanceToolsElement = null;
@@ -913,6 +919,10 @@ class StateMachineCanvasJoint extends AbstractStateMachineCanvas {
                 link.vertices([]);
             }
 
+            if (this.followLayoutRoute(link, transition, parallelEdgeIndex[transition.id])) {
+                return;
+            }
+
             this.separateParallelEdge(link, sourceElement, targetElement, parallelEdgeIndex[transition.id], {
                 isForward: isForwardInPair(transition),
                 gap: parallelGapByPair[parallelGroupKey(transition)] || PARALLEL_EDGE_GAP,
@@ -921,6 +931,40 @@ class StateMachineCanvasJoint extends AbstractStateMachineCanvas {
         });
 
         this.placeLabels(model, fanOutCorridorIndex);
+    }
+
+    followLayoutRoute(link, transition, edgePosition) {
+        if (!edgePosition || edgePosition.count !== 1 || edgePosition.isSelfLoop) {
+            return false;
+        }
+
+        const route = this.edgeRouteByPair[edgeRouteKey(transition.sourceId, transition.targetId)];
+
+        if (!route || !route.points.length) {
+            return false;
+        }
+
+        if (
+            !this.isWhereLayoutPutIt(transition.sourceId, route.sourcePosition) ||
+            !this.isWhereLayoutPutIt(transition.targetId, route.targetPosition)
+        ) {
+            return false;
+        }
+
+        link.vertices(route.points.map((point) => ({ x: point.x, y: point.y })));
+
+        return true;
+    }
+
+    isWhereLayoutPutIt(stateId, layoutPosition) {
+        const position = this.positionByStateId[stateId];
+
+        return Boolean(
+            position &&
+            layoutPosition &&
+            Math.round(position.x) === Math.round(layoutPosition.x) &&
+            Math.round(position.y) === Math.round(layoutPosition.y),
+        );
     }
 
     /**
@@ -1210,7 +1254,9 @@ class StateMachineCanvasJoint extends AbstractStateMachineCanvas {
      * @param {boolean} isSelected
      */
     paintStateSelection(element, isSelected) {
-        element.attr('body/stroke', isSelected ? THEME.accent : THEME.stateStroke);
+        const unselectedStroke = element.get('isCurrentState') ? THEME.currentStateStroke : THEME.stateStroke;
+
+        element.attr('body/stroke', isSelected ? THEME.accent : unselectedStroke);
 
         const elementView = element.findView(this.paper);
 
@@ -1246,7 +1292,9 @@ class StateMachineCanvasJoint extends AbstractStateMachineCanvas {
         // The label is outlined in the same accent, so which chip belongs to the selected line is
         // never in doubt even where neighbouring labels sit close together.
         if (link.labels().length) {
-            link.label(0, { attrs: { rect: { stroke: isSelected ? THEME.accent : 'none' } } });
+            link.label(0, {
+                attrs: { rect: { stroke: color, strokeWidth: isSelected ? 2 : 1 } },
+            });
         }
     }
 
@@ -1258,13 +1306,15 @@ class StateMachineCanvasJoint extends AbstractStateMachineCanvas {
      */
     createStateElement(state, isInitial) {
         const width = stateBoxWidth(state, isInitial);
+        const isCurrent = this.isCurrentState(state);
         const element = new shapes.standard.Rectangle({
             position: this.positionByStateId[state.id] || { x: 0, y: 0 },
             size: { width: width, height: STATE_HEIGHT },
             attrs: {
+                root: isCurrent ? { 'data-qa': CURRENT_STATE_TEST_SELECTOR } : {},
                 body: {
-                    fill: THEME.stateFill,
-                    stroke: THEME.stateStroke,
+                    fill: isCurrent ? THEME.currentStateFill : THEME.stateFill,
+                    stroke: isCurrent ? THEME.currentStateStroke : THEME.stateStroke,
                     strokeWidth: STATE_BORDER_WIDTH,
                     rx: STATE_CORNER_RADIUS,
                     ry: STATE_CORNER_RADIUS,
@@ -1293,8 +1343,15 @@ class StateMachineCanvasJoint extends AbstractStateMachineCanvas {
         // The drawn label is prefixed with the initial-state marker, so the plain name is kept
         // alongside it for the inline editor to start from.
         element.set('stateName', state.name);
+        element.set('isCurrentState', isCurrent);
 
         return element;
+    }
+
+    isCurrentState(state) {
+        const currentStateName = this.options.currentStateName;
+
+        return Boolean(currentStateName) && state.name === currentStateName;
     }
 
     /**
@@ -1382,11 +1439,10 @@ class StateMachineCanvasJoint extends AbstractStateMachineCanvas {
                 },
                 rect: {
                     fill: THEME.linkLabelFill,
-                    // Outlined in the accent while its transition is selected (paintLinkSelection).
-                    stroke: 'none',
-                    strokeWidth: 1.5,
-                    rx: 2,
-                    ry: 2,
+                    stroke: THEME.link,
+                    strokeWidth: 1,
+                    rx: LABEL_CORNER_RADIUS,
+                    ry: LABEL_CORNER_RADIUS,
                     x: `calc(x - ${LABEL_HORIZONTAL_PADDING})`,
                     y: `calc(y - ${LABEL_VERTICAL_PADDING})`,
                     width: `calc(w + ${LABEL_HORIZONTAL_PADDING * 2})`,

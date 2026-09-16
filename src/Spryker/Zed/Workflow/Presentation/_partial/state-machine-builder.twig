@@ -20,6 +20,7 @@
 
 <div class="js-state-machine-builder" data-qa="workflow-state-machine-builder"
      {% if readOnly %}data-readonly="1" data-initial-state="{{ initialState|default('') }}"{% endif %}
+     {% if currentState is defined and currentState %}data-current-state="{{ currentState }}"{% endif %}
      {% if canvasRenderer is defined and canvasRenderer %}data-renderer="{{ canvasRenderer }}"{% endif %}
      data-message-no-states="{{ 'Add at least one state.' | trans }}"
      data-message-no-initial-state="{{ 'The initial state is not specified. Mark one state as the initial state.' | trans }}"

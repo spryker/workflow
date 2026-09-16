@@ -15,7 +15,7 @@
 
 const dagre = require('@dagrejs/dagre');
 const { STATE_HEIGHT, stateBoxWidth } = require('./state-machine-canvas-shared');
-const { buildFanOutIndex, fanOutCorridorAllowance } = require('./state-machine-edge-geometry');
+const { buildFanOutIndex, fanOutCorridorAllowance, edgeRouteKey } = require('./state-machine-edge-geometry');
 const { transitionLabelLines, transitionLabelSize } = require('./state-machine-transition-label');
 
 // The dagre spacing, reused for states placed one at a time so they line up with a laid-out
@@ -25,6 +25,16 @@ const RANK_SEPARATION = 120;
 const NODE_SEPARATION = 50;
 const CANVAS_MARGIN = 40;
 
+const FALLBACK_VIEWPORT = { width: 1000, height: 800 };
+
+function usableViewport(viewport) {
+    if (!viewport || !viewport.width || !viewport.height) {
+        return FALLBACK_VIEWPORT;
+    }
+
+    return viewport;
+}
+
 /**
  * @param {Object} model StateMachineModel
  * @param {Object} positionByStateId shared view-state map of state id to {x, y}, filled in place
@@ -32,7 +42,7 @@ const CANVAS_MARGIN = 40;
  * @returns {boolean} whether the whole diagram was laid out afresh (as opposed to nothing, or only
  *   the new states, being placed)
  */
-function ensureStatePositions(model, positionByStateId) {
+function ensureStatePositions(model, positionByStateId, viewport, edgeRouteByPair) {
     const unplacedStates = model.states.filter((state) => !positionByStateId[state.id]);
 
     if (!unplacedStates.length) {
@@ -40,7 +50,7 @@ function ensureStatePositions(model, positionByStateId) {
     }
 
     if (unplacedStates.length === model.states.length) {
-        applyDirectedGraphLayout(model, positionByStateId);
+        applyDirectedGraphLayout(model, positionByStateId, usableViewport(viewport), edgeRouteByPair);
 
         return true;
     }
@@ -202,7 +212,35 @@ function boxesTooClose(first, second) {
     );
 }
 
-function applyDirectedGraphLayout(model, positionByStateId) {
+function applyDirectedGraphLayout(model, positionByStateId, viewport, edgeRouteByPair) {
+    const candidates = [layoutInDirection(model, 'LR'), layoutInDirection(model, 'TB')];
+    const best = candidates.reduce((winner, candidate) =>
+        fitScale(candidate, viewport) > fitScale(winner, viewport) ? candidate : winner,
+    );
+
+    Object.keys(best.positionByStateId).forEach((stateId) => {
+        positionByStateId[stateId] = best.positionByStateId[stateId];
+    });
+
+    if (!edgeRouteByPair) {
+        return;
+    }
+
+    Object.keys(edgeRouteByPair).forEach((pair) => delete edgeRouteByPair[pair]);
+    Object.keys(best.edgeRouteByPair).forEach((pair) => {
+        edgeRouteByPair[pair] = best.edgeRouteByPair[pair];
+    });
+}
+
+function fitScale(layout, viewport) {
+    if (!layout.width || !layout.height) {
+        return 0;
+    }
+
+    return Math.min(viewport.width / layout.width, viewport.height / layout.height);
+}
+
+function layoutInDirection(model, rankdir) {
     const graph = new dagre.graphlib.Graph();
     // `align: 'UL'` stacks a fork's children downward from the fork's own row. dagre's default
     // centres a parent between its children instead, which puts the first child ABOVE the parent —
@@ -210,7 +248,7 @@ function applyDirectedGraphLayout(model, positionByStateId) {
     // way through, which is what read as tangled. Measured on the reported graph: 2 branch states
     // intruding into the main rows by default, none with 'UL', same overall size.
     graph.setGraph({
-        rankdir: 'LR',
+        rankdir: rankdir,
         align: 'UL',
         nodesep: NODE_SEPARATION,
         ranksep: RANK_SEPARATION,
@@ -238,11 +276,46 @@ function applyDirectedGraphLayout(model, positionByStateId) {
 
     dagre.layout(graph);
 
+    const placed = {};
+    let left = Infinity;
+    let top = Infinity;
+    let right = -Infinity;
+    let bottom = -Infinity;
+
     model.states.forEach((state) => {
         const node = graph.node(state.id);
         // dagre reports the node center; the renderers position by the top-left corner.
-        positionByStateId[state.id] = { x: node.x - node.width / 2, y: node.y - STATE_HEIGHT / 2 };
+        const position = { x: node.x - node.width / 2, y: node.y - STATE_HEIGHT / 2 };
+
+        placed[state.id] = position;
+        left = Math.min(left, position.x);
+        top = Math.min(top, position.y);
+        right = Math.max(right, position.x + node.width);
+        bottom = Math.max(bottom, position.y + STATE_HEIGHT);
     });
+
+    const routes = {};
+
+    graph.edges().forEach((edge) => {
+        const points = graph.edge(edge).points || [];
+
+        if (points.length < 3) {
+            return;
+        }
+
+        routes[edgeRouteKey(edge.v, edge.w)] = {
+            points: points.slice(1, -1).map((point) => ({ x: point.x, y: point.y })),
+            sourcePosition: placed[edge.v],
+            targetPosition: placed[edge.w],
+        };
+    });
+
+    return {
+        positionByStateId: placed,
+        edgeRouteByPair: routes,
+        width: model.states.length ? right - left : 0,
+        height: model.states.length ? bottom - top : 0,
+    };
 }
 
 /**

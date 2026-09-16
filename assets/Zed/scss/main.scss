@@ -114,7 +114,7 @@ $workflow-header-band: 44px;
 
 .workflow-canvas {
     position: relative;
-    height: 520px;
+    height: clamp(420px, 78vh, 900px);
     border: 1px solid $workflow-border;
     border-radius: 8px;
     overflow: hidden;

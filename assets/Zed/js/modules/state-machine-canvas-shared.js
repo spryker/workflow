@@ -45,6 +45,8 @@ const THEME = {
     stateFill: '#ffffff',
     stateStroke: '#e5e5e5',
     stateText: '#0a0a0a',
+    currentStateFill: '#e8f1fc',
+    currentStateStroke: '#2f6fd0',
     handleStroke: '#a7c8ea',
     handleFill: '#ffffff',
     link: '#737373',

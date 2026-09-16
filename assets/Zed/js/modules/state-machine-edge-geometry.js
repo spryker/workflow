@@ -199,7 +199,12 @@ function fanOutCorridorAllowance(count) {
     return FAN_OUT_TURN_BASE + (count - 1) * FAN_OUT_TURN_STEP;
 }
 
+function edgeRouteKey(sourceId, targetId) {
+    return `${sourceId}\u0000${targetId}`;
+}
+
 module.exports = {
+    edgeRouteKey,
     FAN_OUT_TURN_BASE,
     FAN_OUT_TURN_STEP,
     PARALLEL_EDGE_GAP,

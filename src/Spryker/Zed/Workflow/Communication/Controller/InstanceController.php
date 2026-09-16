@@ -139,6 +139,14 @@ class InstanceController extends AbstractWorkflowController
         $currentState = $stateMachineItemStateTransfer !== null ? $stateMachineItemStateTransfer->getName() : null;
         $idStateMachineProcess = $stateMachineProcessTransfer->getIdStateMachineProcessOrFail();
 
+        $stateMachineProcessDefinitionWithDefinitionTransfer = $this->findStateMachineProcessVersionOrFlashError(
+            $idStateMachineProcessDefinition,
+        );
+
+        if ($stateMachineProcessDefinitionWithDefinitionTransfer === null) {
+            return $this->redirectResponse(Url::generate(static::URL_PROCESS_LIST)->build());
+        }
+
         $manualEvents = $this->getFactory()->getStateMachineFacade()->getManualEventsForStateMachineItem(
             (new StateMachineItemTransfer())
                 ->setStateMachineName($stateMachineProcessTransfer->getStateMachineName())
@@ -153,6 +161,8 @@ class InstanceController extends AbstractWorkflowController
             'version' => $stateMachineProcessDefinitionTransfer->getVersion(),
             'identifier' => $identifier,
             'currentState' => $currentState,
+            'definition' => $stateMachineProcessDefinitionWithDefinitionTransfer->getDefinition(),
+            'initialState' => $stateMachineProcessDefinitionWithDefinitionTransfer->getInitialState(),
             'idStateMachineProcessDefinition' => $idStateMachineProcessDefinition,
             'transitionHistory' => $this->getTransitionHistory($idStateMachineProcess, $identifier),
             'manualEvents' => $manualEvents,

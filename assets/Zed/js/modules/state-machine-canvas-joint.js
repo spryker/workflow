@@ -43,7 +43,6 @@ const {
 } = require('./state-machine-edge-geometry');
 const { transitionLabelLines, transitionLabelSize } = require('./state-machine-transition-label');
 const {
-    STATE_WIDTH,
     STATE_HORIZONTAL_PADDING,
     INITIAL_STATE_MARKER,
     stateBoxWidth,

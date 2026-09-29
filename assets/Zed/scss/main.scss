@@ -1,6 +1,5 @@
 // Workflow visual builder — the CHROME around the canvas only: the toolbar, the hint line, the
 // inspector labels and the raw-XML editor.
-//
 // The canvas surface itself and everything drawn on it (state boxes, links, labels, handles, hover
 // affordances) belong to the renderer, which paints them from the theme tokens in
 // assets/Zed/js/modules/state-machine-canvas-shared.js. Nothing here duplicates those tokens —
@@ -37,7 +36,6 @@ $workflow-header-band: 44px;
     // Each control is a self-contained square button, spaced by the toolbar's own gap rather than
     // joined into a button group — a group makes its buttons share borders and breaks the row's
     // vertical centring, because the group, not the button, becomes the flex item.
-    //
     // Nested to outrank the theme's `.float-e-margins .btn` bottom margin: flexbox centres the
     // margin box, so that margin would sit every button half of it above the row's centre line.
     .workflow-icon-button {

@@ -84,7 +84,7 @@ function readAvailablePlugins() {
             commands: Array.isArray(parsed.commands) ? parsed.commands : [],
             conditions: Array.isArray(parsed.conditions) ? parsed.conditions : [],
         };
-    } catch (error) {
+    } catch {
         return { commands: [], conditions: [] };
     }
 }
@@ -109,7 +109,7 @@ function readLabels(root, selector) {
         const parsed = JSON.parse(node.textContent.trim() || '{}');
 
         return parsed && typeof parsed === 'object' ? parsed : {};
-    } catch (error) {
+    } catch {
         return {};
     }
 }

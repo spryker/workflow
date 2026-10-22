@@ -13,7 +13,10 @@ use Generated\Shared\Transfer\StateMachineProcessCollectionRequestTransfer;
 use Generated\Shared\Transfer\StateMachineProcessTransfer;
 use Spryker\Zed\Kernel\Persistence\EntityManager\TransactionHandlerInterface;
 use Spryker\Zed\Workflow\Business\Reader\StateMachineProcessExistenceReaderInterface;
+use Spryker\Zed\Workflow\Business\Validator\DefinitionValidatorInterface;
+use Spryker\Zed\Workflow\Business\Writer\DefinitionWriterInterface;
 use Spryker\Zed\Workflow\Business\Writer\ProcessWriter;
+use Spryker\Zed\Workflow\Business\Writer\TriggerWriterInterface;
 use Spryker\Zed\Workflow\Persistence\WorkflowEntityManagerInterface;
 use Spryker\Zed\Workflow\WorkflowConfig;
 
@@ -162,7 +165,13 @@ class ProcessWriterTest extends Unit
         );
 
         $processWriterMock = $this->getMockBuilder(ProcessWriter::class)
-            ->setConstructorArgs([$workflowEntityManagerMock, $stateMachineProcessExistenceReaderMock])
+            ->setConstructorArgs([
+                $workflowEntityManagerMock,
+                $stateMachineProcessExistenceReaderMock,
+                $this->createMock(DefinitionWriterInterface::class),
+                $this->createMock(TriggerWriterInterface::class),
+                $this->createMock(DefinitionValidatorInterface::class),
+            ])
             ->onlyMethods(['getTransactionHandler'])
             ->getMock();
 

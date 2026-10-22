@@ -17,6 +17,7 @@ use Generated\Shared\Transfer\StateMachineProcessDefinitionInstanceConditionsTra
 use Generated\Shared\Transfer\StateMachineProcessDefinitionInstanceTransfer;
 use Generated\Shared\Transfer\StateMachineProcessDefinitionTransfer;
 use Generated\Shared\Transfer\StateMachineProcessTransfer;
+use Generated\Shared\Transfer\UserTransfer;
 use Orm\Zed\StateMachine\Persistence\SpyStateMachineProcess;
 use Orm\Zed\Workflow\Persistence\SpyStateMachineProcessDefinition;
 use Orm\Zed\Workflow\Persistence\SpyStateMachineProcessDefinitionInstance;
@@ -38,9 +39,6 @@ class WorkflowMapper
 
     /**
      * @param \Propel\Runtime\Collection\ObjectCollection<\Orm\Zed\StateMachine\Persistence\SpyStateMachineProcess> $stateMachineProcessEntities
-     * @param \Generated\Shared\Transfer\StateMachineProcessCollectionTransfer $stateMachineProcessCollectionTransfer
-     *
-     * @return \Generated\Shared\Transfer\StateMachineProcessCollectionTransfer
      */
     public function mapProcessEntitiesToStateMachineProcessCollectionTransfer(
         ObjectCollection $stateMachineProcessEntities,
@@ -71,14 +69,17 @@ class WorkflowMapper
             ),
         );
 
+        if ($stateMachineProcessDefinitionEntity->getFkUser() !== null) {
+            $stateMachineProcessDefinitionTransfer->setUser(
+                (new UserTransfer())->setIdUser($stateMachineProcessDefinitionEntity->getFkUser()),
+            );
+        }
+
         return $stateMachineProcessDefinitionTransfer;
     }
 
     /**
      * @param \Propel\Runtime\Collection\ObjectCollection<\Orm\Zed\Workflow\Persistence\SpyStateMachineProcessDefinition> $stateMachineProcessDefinitionEntities
-     * @param \Generated\Shared\Transfer\StateMachineProcessDefinitionCollectionTransfer $stateMachineProcessDefinitionCollectionTransfer
-     *
-     * @return \Generated\Shared\Transfer\StateMachineProcessDefinitionCollectionTransfer
      */
     public function mapProcessDefinitionEntitiesToStateMachineProcessDefinitionCollectionTransfer(
         ObjectCollection $stateMachineProcessDefinitionEntities,
@@ -137,9 +138,6 @@ class WorkflowMapper
 
     /**
      * @param \Propel\Runtime\Collection\ObjectCollection<\Orm\Zed\Workflow\Persistence\SpyStateMachineProcessDefinitionInstance> $stateMachineProcessDefinitionInstanceEntities
-     * @param \Generated\Shared\Transfer\StateMachineProcessDefinitionInstanceCollectionTransfer $stateMachineProcessDefinitionInstanceCollectionTransfer
-     *
-     * @return \Generated\Shared\Transfer\StateMachineProcessDefinitionInstanceCollectionTransfer
      */
     public function mapProcessDefinitionInstanceEntitiesToStateMachineProcessDefinitionInstanceCollectionTransfer(
         ObjectCollection $stateMachineProcessDefinitionInstanceEntities,
@@ -161,9 +159,6 @@ class WorkflowMapper
 
     /**
      * @param \Propel\Runtime\Collection\ObjectCollection<\Orm\Zed\Workflow\Persistence\SpyStateMachineProcessDefinitionTrigger> $stateMachineProcessDefinitionTriggerEntities
-     * @param \Generated\Shared\Transfer\StateMachineDefinitionTriggerCollectionTransfer $stateMachineDefinitionTriggerCollectionTransfer
-     *
-     * @return \Generated\Shared\Transfer\StateMachineDefinitionTriggerCollectionTransfer
      */
     public function mapProcessDefinitionTriggerEntitiesToStateMachineDefinitionTriggerCollectionTransfer(
         ObjectCollection $stateMachineProcessDefinitionTriggerEntities,
@@ -185,12 +180,10 @@ class WorkflowMapper
         SpyStateMachineProcessDefinitionTrigger $stateMachineProcessDefinitionTriggerEntity,
         StateMachineDefinitionTriggerTransfer $stateMachineDefinitionTriggerTransfer
     ): StateMachineDefinitionTriggerTransfer {
-        $stateMachineDefinitionTriggerTransfer->fromArray($stateMachineProcessDefinitionTriggerEntity->toArray(), true);
-
-        $stateMachineProcessTransfer = (new StateMachineProcessTransfer())
-           ->setIdStateMachineProcess($stateMachineProcessDefinitionTriggerEntity->getFkStateMachineProcess());
-        $stateMachineDefinitionTriggerTransfer->setStateMachineProcess($stateMachineProcessTransfer);
-
-        return $stateMachineDefinitionTriggerTransfer;
+        return $stateMachineDefinitionTriggerTransfer
+            ->fromArray($stateMachineProcessDefinitionTriggerEntity->toArray(), true)
+            ->setStateMachineProcess(
+                (new StateMachineProcessTransfer())->setIdStateMachineProcess($stateMachineProcessDefinitionTriggerEntity->getFkStateMachineProcess()),
+            );
     }
 }

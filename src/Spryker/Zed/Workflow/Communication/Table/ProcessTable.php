@@ -7,35 +7,25 @@
 
 namespace Spryker\Zed\Workflow\Communication\Table;
 
-use Generated\Shared\Transfer\StateMachineTriggerEventConditionsTransfer;
-use Generated\Shared\Transfer\StateMachineTriggerEventCriteriaTransfer;
 use Orm\Zed\StateMachine\Persistence\Map\SpyStateMachineProcessTableMap;
 use Orm\Zed\StateMachine\Persistence\SpyStateMachineProcessQuery;
-use Orm\Zed\Workflow\Persistence\Map\SpyStateMachineProcessDefinitionTriggerTableMap;
-use Orm\Zed\Workflow\Persistence\SpyStateMachineProcessDefinition;
+use Orm\Zed\Workflow\Persistence\Map\SpyStateMachineProcessDefinitionTableMap;
 use Orm\Zed\Workflow\Persistence\SpyStateMachineProcessDefinitionQuery;
-use Orm\Zed\Workflow\Persistence\SpyStateMachineProcessDefinitionTriggerQuery;
 use Propel\Runtime\ActiveQuery\Criteria;
 use Spryker\Service\UtilText\Model\Url\Url;
+use Spryker\Zed\Gui\Communication\Table\AbstractTable;
 use Spryker\Zed\Gui\Communication\Table\TableConfiguration;
-use Spryker\Zed\Workflow\Business\WorkflowFacadeInterface;
+use Spryker\Zed\Workflow\Communication\Builder\ProcessStatusConfirmationBuilderInterface;
+use Spryker\Zed\Workflow\Communication\Controller\VersionController;
 use Spryker\Zed\Workflow\Communication\Form\ProcessActivationForm;
+use Spryker\Zed\Workflow\Communication\Reader\TriggerLabelReaderInterface;
 use Spryker\Zed\Workflow\WorkflowConfig;
 
-class ProcessTable extends AbstractConfirmationActionTable
+class ProcessTable extends AbstractTable
 {
-    protected const string EDIT_CONFIRMATION_TITLE = 'Create an editable copy';
+    protected const string BUTTON_TITLE_ACTIVATE = 'Activate';
 
-    protected const string EDIT_CONFIRMATION_MESSAGE = 'You are about to create an editable copy of this workflow. Your changes are saved as a new version - the current one keeps running. Continue?';
-
-    protected const string EDIT_CONFIRMATION_BUTTON = 'Continue';
-
-    /**
-     * @uses \Spryker\Zed\Workflow\Communication\Controller\VersionController::indexAction()
-     *
-     * @var string
-     */
-    protected const string URL_VERSION = '/workflow/version';
+    protected const string BUTTON_TITLE_DEACTIVATE = 'Deactivate';
 
     /**
      * @uses \Spryker\Zed\Workflow\Communication\Controller\VersionController::viewAction()
@@ -50,13 +40,6 @@ class ProcessTable extends AbstractConfirmationActionTable
      * @var string
      */
     protected const string URL_VERSION_EDIT = '/workflow/version/create';
-
-    /**
-     * @uses \Spryker\Zed\Workflow\Communication\Controller\TriggerController::indexAction()
-     *
-     * @var string
-     */
-    protected const string URL_TRIGGER = '/workflow/trigger';
 
     /**
      * @uses \Spryker\Zed\Workflow\Communication\Controller\ProcessController::activateAction()
@@ -77,6 +60,8 @@ class ProcessTable extends AbstractConfirmationActionTable
      */
     protected const string COL_ACTIVE_VERSION = 'active_version';
 
+    protected const string VERSION_LABEL_PREFIX = 'V';
+
     /**
      * @var string
      */
@@ -90,28 +75,35 @@ class ProcessTable extends AbstractConfirmationActionTable
     /**
      * @var string
      */
-    protected const string REQUEST_PARAM_ID_PROCESS = 'id-process';
+    protected const string PARAM_ID_PROCESS = 'id-process';
 
     /**
      * @var string
      */
-    protected const string REQUEST_PARAM_ID_DEFINITION = 'id-definition';
+    protected const string PARAM_ID_DEFINITION = 'id-definition';
+
+    protected const int DESCRIPTION_MAX_LENGTH = 100;
 
     /**
      * @var string
      */
-    protected const string REQUEST_PARAM_BACK = 'back';
+    protected const string DESCRIPTION_TRUNCATION_SUFFIX = '...';
 
     /**
-     * @var string
+     * @var array<int, array<array<string, mixed>>>
      */
-    protected const string BACK_ORIGIN_PROCESS = 'process';
+    protected array $definitionsGroupedByIdStateMachineProcess = [];
+
+    /**
+     * @var array<int, array<string, string>>
+     */
+    protected array $triggerLabelsGroupedByIdStateMachineProcess = [];
 
     public function __construct(
         protected SpyStateMachineProcessQuery $stateMachineProcessQuery,
-        protected SpyStateMachineProcessDefinitionTriggerQuery $stateMachineProcessDefinitionTriggerQuery,
         protected SpyStateMachineProcessDefinitionQuery $stateMachineProcessDefinitionQuery,
-        protected WorkflowFacadeInterface $workflowFacade
+        protected TriggerLabelReaderInterface $triggerLabelReader,
+        protected ProcessStatusConfirmationBuilderInterface $processStatusConfirmationBuilder
     ) {
     }
 
@@ -120,8 +112,9 @@ class ProcessTable extends AbstractConfirmationActionTable
         $config->setHeader([
             SpyStateMachineProcessTableMap::COL_NAME => 'Workflow',
             SpyStateMachineProcessTableMap::COL_SUBJECT_TYPE => 'Subject Type',
+            SpyStateMachineProcessTableMap::COL_DESCRIPTION => 'Description',
             SpyStateMachineProcessTableMap::COL_STATUS => 'Status',
-            static::COL_ACTIVE_VERSION => 'Active Version',
+            static::COL_ACTIVE_VERSION => 'Active version',
             static::COL_TRIGGERS => 'Triggers',
             static::COL_ACTIONS => 'Actions',
         ]);
@@ -135,10 +128,12 @@ class ProcessTable extends AbstractConfirmationActionTable
         $config->setSearchable([
             SpyStateMachineProcessTableMap::COL_NAME,
             SpyStateMachineProcessTableMap::COL_SUBJECT_TYPE,
+            SpyStateMachineProcessTableMap::COL_DESCRIPTION,
             SpyStateMachineProcessTableMap::COL_STATUS,
         ]);
 
         $config->setRawColumns([
+            SpyStateMachineProcessTableMap::COL_DESCRIPTION,
             SpyStateMachineProcessTableMap::COL_STATUS,
             static::COL_ACTIVE_VERSION,
             static::COL_TRIGGERS,
@@ -164,12 +159,60 @@ class ProcessTable extends AbstractConfirmationActionTable
      */
     protected function prepareData(TableConfiguration $config): array
     {
+        $items = $this->runQuery($this->prepareQuery(), $config);
+
+        $stateMachineProcessIds = [];
+        foreach ($items as $item) {
+            $stateMachineProcessIds[] = (int)$item[SpyStateMachineProcessTableMap::COL_ID_STATE_MACHINE_PROCESS];
+        }
+
+        $this->loadPageRelations($stateMachineProcessIds);
+
         $results = [];
-        foreach ($this->runQuery($this->prepareQuery(), $config) as $item) {
+        foreach ($items as $item) {
             $results[] = $this->formatRow($item);
         }
 
         return $results;
+    }
+
+    /**
+     * @param array<int> $stateMachineProcessIds
+     */
+    protected function loadPageRelations(array $stateMachineProcessIds): void
+    {
+        $this->definitionsGroupedByIdStateMachineProcess = $this->getDefinitionsGroupedByIdStateMachineProcess($stateMachineProcessIds);
+        $this->triggerLabelsGroupedByIdStateMachineProcess = $this->triggerLabelReader->getTriggerLabelsGroupedByIdStateMachineProcess($stateMachineProcessIds);
+    }
+
+    /**
+     * @param array<int> $stateMachineProcessIds
+     *
+     * @return array<int, array<array<string, mixed>>>
+     */
+    protected function getDefinitionsGroupedByIdStateMachineProcess(array $stateMachineProcessIds): array
+    {
+        if ($stateMachineProcessIds === []) {
+            return [];
+        }
+
+        $definitions = (clone $this->stateMachineProcessDefinitionQuery)
+            ->filterByFkStateMachineProcess_In($stateMachineProcessIds)
+            ->orderByVersion(Criteria::DESC)
+            ->select([
+                SpyStateMachineProcessDefinitionTableMap::COL_ID_STATE_MACHINE_PROCESS_DEFINITION,
+                SpyStateMachineProcessDefinitionTableMap::COL_FK_STATE_MACHINE_PROCESS,
+                SpyStateMachineProcessDefinitionTableMap::COL_VERSION,
+                SpyStateMachineProcessDefinitionTableMap::COL_STATUS,
+            ])
+            ->find();
+
+        $definitionsGroupedByIdStateMachineProcess = [];
+        foreach ($definitions as $definition) {
+            $definitionsGroupedByIdStateMachineProcess[(int)$definition[SpyStateMachineProcessDefinitionTableMap::COL_FK_STATE_MACHINE_PROCESS]][] = $definition;
+        }
+
+        return $definitionsGroupedByIdStateMachineProcess;
     }
 
     /**
@@ -184,6 +227,7 @@ class ProcessTable extends AbstractConfirmationActionTable
         return [
             SpyStateMachineProcessTableMap::COL_NAME => $item[SpyStateMachineProcessTableMap::COL_NAME],
             SpyStateMachineProcessTableMap::COL_SUBJECT_TYPE => $item[SpyStateMachineProcessTableMap::COL_SUBJECT_TYPE],
+            SpyStateMachineProcessTableMap::COL_DESCRIPTION => $this->wrapWithTestSelector('workflow-process-description', $this->createDescription((string)$item[SpyStateMachineProcessTableMap::COL_DESCRIPTION])),
             SpyStateMachineProcessTableMap::COL_STATUS => $this->wrapWithTestSelector('workflow-process-status', $this->createStatusLabel((string)$item[SpyStateMachineProcessTableMap::COL_STATUS])),
             static::COL_ACTIVE_VERSION => $this->wrapWithTestSelector('workflow-process-active-version', $this->findActiveVersion($idStateMachineProcess)),
             static::COL_TRIGGERS => $this->wrapWithTestSelector('workflow-process-triggers', $this->createTriggersLabels($idStateMachineProcess)),
@@ -196,6 +240,25 @@ class ProcessTable extends AbstractConfirmationActionTable
         return sprintf('<span data-qa="%s">%s</span>', $testSelector, $content);
     }
 
+    protected function createDescription(string $description): string
+    {
+        if ($description === '') {
+            return '-';
+        }
+
+        $truncatedDescription = $description;
+
+        if (mb_strlen($description) > static::DESCRIPTION_MAX_LENGTH) {
+            $truncatedDescription = rtrim(mb_substr($description, 0, static::DESCRIPTION_MAX_LENGTH)) . static::DESCRIPTION_TRUNCATION_SUFFIX;
+        }
+
+        return sprintf(
+            '<span title="%s">%s</span>',
+            htmlspecialchars($description, ENT_QUOTES),
+            htmlspecialchars($truncatedDescription, ENT_QUOTES),
+        );
+    }
+
     protected function createStatusLabel(string $status): string
     {
         $labelClass = $status === WorkflowConfig::PROCESS_DEFINITION_STATUS_ACTIVE ? 'label-info' : 'label-default';
@@ -205,41 +268,37 @@ class ProcessTable extends AbstractConfirmationActionTable
 
     protected function findActiveVersion(int $idStateMachineProcess): string
     {
-        $stateMachineProcessDefinitionEntity = $this->findActiveDefinitionEntity($idStateMachineProcess);
+        $activeDefinition = $this->findActiveDefinition($idStateMachineProcess);
 
-        if ($stateMachineProcessDefinitionEntity === null) {
+        if ($activeDefinition === null) {
             return '-';
         }
 
-        return $this->generateViewButton(
-            Url::generate(static::URL_VERSION_VIEW, [
-                static::REQUEST_PARAM_ID_DEFINITION => $stateMachineProcessDefinitionEntity->getIdStateMachineProcessDefinition(),
-                static::REQUEST_PARAM_BACK => static::BACK_ORIGIN_PROCESS,
-            ]),
-            (string)$stateMachineProcessDefinitionEntity->getVersion(),
-        );
+        return static::VERSION_LABEL_PREFIX . $activeDefinition[SpyStateMachineProcessDefinitionTableMap::COL_VERSION];
     }
 
-    protected function findActiveDefinitionEntity(int $idStateMachineProcess): ?SpyStateMachineProcessDefinition
+    /**
+     * @return array<string, mixed>|null
+     */
+    protected function findActiveDefinition(int $idStateMachineProcess): ?array
     {
-        return (clone $this->stateMachineProcessDefinitionQuery)
-            ->filterByFkStateMachineProcess($idStateMachineProcess)
-            ->filterByStatus(WorkflowConfig::PROCESS_DEFINITION_STATUS_ACTIVE)
-            ->findOne();
-    }
-
-    protected function findDefaultDefinitionEntity(int $idStateMachineProcess): ?SpyStateMachineProcessDefinition
-    {
-        $stateMachineProcessDefinitionEntity = $this->findActiveDefinitionEntity($idStateMachineProcess);
-
-        if ($stateMachineProcessDefinitionEntity !== null) {
-            return $stateMachineProcessDefinitionEntity;
+        foreach ($this->definitionsGroupedByIdStateMachineProcess[$idStateMachineProcess] ?? [] as $definition) {
+            if ($definition[SpyStateMachineProcessDefinitionTableMap::COL_STATUS] === WorkflowConfig::PROCESS_DEFINITION_STATUS_ACTIVE) {
+                return $definition;
+            }
         }
 
-        return (clone $this->stateMachineProcessDefinitionQuery)
-            ->filterByFkStateMachineProcess($idStateMachineProcess)
-            ->orderByVersion(Criteria::DESC)
-            ->findOne();
+        return null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    protected function findDefaultDefinition(int $idStateMachineProcess): ?array
+    {
+        return $this->findActiveDefinition($idStateMachineProcess)
+            ?? $this->definitionsGroupedByIdStateMachineProcess[$idStateMachineProcess][0]
+            ?? null;
     }
 
     /**
@@ -247,51 +306,42 @@ class ProcessTable extends AbstractConfirmationActionTable
      */
     protected function buildDefinitionLinks(int $idStateMachineProcess): array
     {
-        $stateMachineProcessDefinitionEntity = $this->findDefaultDefinitionEntity($idStateMachineProcess);
+        $defaultDefinition = $this->findDefaultDefinition($idStateMachineProcess);
 
-        if ($stateMachineProcessDefinitionEntity === null) {
+        if ($defaultDefinition === null) {
             return [];
         }
 
-        $idStateMachineProcessDefinition = $stateMachineProcessDefinitionEntity->getIdStateMachineProcessDefinition();
+        $idStateMachineProcessDefinition = (int)$defaultDefinition[SpyStateMachineProcessDefinitionTableMap::COL_ID_STATE_MACHINE_PROCESS_DEFINITION];
 
         return [
             $this->generateViewButton(
                 Url::generate(static::URL_VERSION_VIEW, [
-                    static::REQUEST_PARAM_ID_DEFINITION => $idStateMachineProcessDefinition,
-                    static::REQUEST_PARAM_BACK => static::BACK_ORIGIN_PROCESS,
+                    static::PARAM_ID_DEFINITION => $idStateMachineProcessDefinition,
                 ]),
                 'View',
             ),
 
             $this->generateEditButton(
                 Url::generate(static::URL_VERSION_EDIT, [
-                    static::REQUEST_PARAM_ID_PROCESS => $idStateMachineProcess,
-                    static::REQUEST_PARAM_ID_DEFINITION => $idStateMachineProcessDefinition,
-                    static::REQUEST_PARAM_BACK => static::BACK_ORIGIN_PROCESS,
+                    static::PARAM_ID_PROCESS => $idStateMachineProcess,
+                    static::PARAM_ID_DEFINITION => $idStateMachineProcessDefinition,
+                    VersionController::PARAM_BACK => VersionController::BACK_ORIGIN_WORKFLOW_LIST,
                 ]),
-                'Edit',
-                $this->buildConfirmationAttributes(
-                    static::EDIT_CONFIRMATION_TITLE,
-                    static::EDIT_CONFIRMATION_MESSAGE,
-                    static::EDIT_CONFIRMATION_BUTTON,
-                ),
+                'New version',
             ),
         ];
     }
 
     protected function createTriggersLabels(int $idStateMachineProcess): string
     {
-        $eventNames = $this->findAttachedEventNames($idStateMachineProcess);
-        if ($eventNames === []) {
+        $triggerLabelsIndexedByEventName = $this->triggerLabelsGroupedByIdStateMachineProcess[$idStateMachineProcess] ?? [];
+        if ($triggerLabelsIndexedByEventName === []) {
             return '-';
         }
 
-        $friendlyNamesByEventName = $this->getFriendlyNamesIndexedByEventName($idStateMachineProcess);
-
         $labels = [];
-        foreach ($eventNames as $eventName) {
-            $label = $friendlyNamesByEventName[$eventName] ?? $eventName;
+        foreach ($triggerLabelsIndexedByEventName as $eventName => $label) {
             $labels[] = sprintf(
                 '<span title="%s">%s</span>',
                 htmlspecialchars($eventName, ENT_QUOTES),
@@ -303,86 +353,42 @@ class ProcessTable extends AbstractConfirmationActionTable
     }
 
     /**
-     * @return array<string, string> Friendly name keyed by technical event name.
-     */
-    protected function getFriendlyNamesIndexedByEventName(int $idStateMachineProcess): array
-    {
-        $stateMachineTriggerEventCollectionTransfer = $this->workflowFacade->getStateMachineTriggerEventCollection(
-            (new StateMachineTriggerEventCriteriaTransfer())
-                ->setStateMachineTriggerEventConditions(
-                    (new StateMachineTriggerEventConditionsTransfer())->addIdStateMachineProcess($idStateMachineProcess),
-                ),
-        );
-
-        $friendlyNamesIndexedByEventName = [];
-        foreach ($stateMachineTriggerEventCollectionTransfer->getStateMachineTriggerEvents() as $stateMachineTriggerEventTransfer) {
-            $name = (string)$stateMachineTriggerEventTransfer->getName();
-
-            if ($name === '') {
-                continue;
-            }
-
-            $friendlyNamesIndexedByEventName[$stateMachineTriggerEventTransfer->getEventNameOrFail()] = $name;
-        }
-
-        return $friendlyNamesIndexedByEventName;
-    }
-
-    /**
-     * @return array<string>
-     */
-    protected function findAttachedEventNames(int $idStateMachineProcess): array
-    {
-        $eventNamesCollection = (clone $this->stateMachineProcessDefinitionTriggerQuery)
-            ->filterByFkStateMachineProcess($idStateMachineProcess)
-            ->select([SpyStateMachineProcessDefinitionTriggerTableMap::COL_EVENT_NAME])
-            ->find();
-
-        $eventNames = [];
-        foreach ($eventNamesCollection as $eventName) {
-            $eventNames[] = (string)$eventName;
-        }
-
-        return $eventNames;
-    }
-
-    /**
      * @param array<string, mixed> $item
      *
      * @return array<string>
      */
     protected function buildLinks(array $item): array
     {
-        $idStateMachineProcess = $item[SpyStateMachineProcessTableMap::COL_ID_STATE_MACHINE_PROCESS];
+        $idStateMachineProcess = (int)$item[SpyStateMachineProcessTableMap::COL_ID_STATE_MACHINE_PROCESS];
+        $isProcessActive = $item[SpyStateMachineProcessTableMap::COL_STATUS] === WorkflowConfig::PROCESS_DEFINITION_STATUS_ACTIVE;
 
-        $buttons = $this->buildDefinitionLinks((int)$idStateMachineProcess);
-        $buttons[] = $this->generateViewButton(
-            Url::generate(static::URL_VERSION, [static::REQUEST_PARAM_ID_PROCESS => $idStateMachineProcess]),
-            'Versions',
-        );
-        $buttons[] = $this->generateViewButton(
-            Url::generate(static::URL_TRIGGER, [static::REQUEST_PARAM_ID_PROCESS => $idStateMachineProcess]),
-            'Triggers',
-        );
-
-        if ($item[SpyStateMachineProcessTableMap::COL_STATUS] === WorkflowConfig::PROCESS_DEFINITION_STATUS_ACTIVE) {
-            $buttons[] = $this->generateFormButton(
-                Url::generate(static::URL_DEACTIVATE, [static::REQUEST_PARAM_ID_PROCESS => $idStateMachineProcess]),
-                'Deactivate',
-                ProcessActivationForm::class,
-                [static::BUTTON_CLASS => 'btn-danger'],
-            );
-
-            return $buttons;
-        }
-
+        $buttons = $this->buildDefinitionLinks($idStateMachineProcess);
         $buttons[] = $this->generateFormButton(
-            Url::generate(static::URL_ACTIVATE, [static::REQUEST_PARAM_ID_PROCESS => $idStateMachineProcess]),
-            'Activate',
+            Url::generate($isProcessActive ? static::URL_DEACTIVATE : static::URL_ACTIVATE, [static::PARAM_ID_PROCESS => $idStateMachineProcess]),
+            $isProcessActive ? static::BUTTON_TITLE_DEACTIVATE : static::BUTTON_TITLE_ACTIVATE,
             ProcessActivationForm::class,
-            [static::BUTTON_CLASS => 'btn-create'],
+            [static::BUTTON_CLASS => $isProcessActive ? 'btn-danger' : 'btn-create'] + $this->buildProcessStatusConfirmationAttributes(
+                $idStateMachineProcess,
+                (string)$item[SpyStateMachineProcessTableMap::COL_NAME],
+                $isProcessActive,
+            ),
         );
 
         return $buttons;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function buildProcessStatusConfirmationAttributes(int $idStateMachineProcess, string $processName, bool $isProcessActive): array
+    {
+        $actionConfirmationTransfer = $this->processStatusConfirmationBuilder->buildActionConfirmationTransfer(
+            $processName,
+            $this->triggerLabelsGroupedByIdStateMachineProcess[$idStateMachineProcess] ?? [],
+            $isProcessActive,
+            $this->findActiveDefinition($idStateMachineProcess) !== null,
+        );
+
+        return $this->buildConfirmationAttributes($actionConfirmationTransfer);
     }
 }

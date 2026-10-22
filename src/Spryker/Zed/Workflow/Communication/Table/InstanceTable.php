@@ -8,160 +8,113 @@
 namespace Spryker\Zed\Workflow\Communication\Table;
 
 use Generated\Shared\Transfer\StateMachineItemTransfer;
-use Generated\Shared\Transfer\StateMachineProcessDefinitionConditionsTransfer;
-use Generated\Shared\Transfer\StateMachineProcessDefinitionCriteriaTransfer;
-use Generated\Shared\Transfer\StateMachineProcessDefinitionTransfer;
+use Generated\Shared\Transfer\StateMachineProcessTransfer;
 use Orm\Zed\StateMachine\Persistence\Map\SpyStateMachineItemStateTableMap;
 use Orm\Zed\Workflow\Persistence\Map\SpyStateMachineProcessDefinitionInstanceTableMap;
+use Orm\Zed\Workflow\Persistence\Map\SpyStateMachineProcessDefinitionTableMap;
 use Orm\Zed\Workflow\Persistence\SpyStateMachineProcessDefinitionInstanceQuery;
-use Propel\Runtime\ActiveQuery\Criteria;
 use Spryker\Service\UtilText\Model\Url\Url;
 use Spryker\Zed\Gui\Communication\Table\AbstractTable;
 use Spryker\Zed\Gui\Communication\Table\TableConfiguration;
 use Spryker\Zed\StateMachine\Business\StateMachineFacadeInterface;
-use Spryker\Zed\Workflow\Business\WorkflowFacadeInterface;
+use Spryker\Zed\Workflow\Communication\Form\InstanceEventTriggerForm;
 
 class InstanceTable extends AbstractTable
 {
     /**
+     * @uses \Spryker\Zed\Workflow\Communication\Controller\InstanceController::tableAction()
+     */
+    protected const string URL_TABLE = 'table';
+
+    /**
      * @uses \Spryker\Zed\Workflow\Communication\Controller\InstanceController::viewAction()
-     *
-     * @var string
      */
     protected const string URL_VIEW = '/workflow/instance/view';
 
     /**
      * @uses \Spryker\Zed\Workflow\Communication\Controller\InstanceController::triggerAction()
-     *
-     * @var string
      */
     protected const string URL_TRIGGER = '/workflow/instance/trigger';
 
-    /**
-     * @var string
-     */
+    protected const string COL_SUBJECT_TYPE = 'subject_type';
+
     protected const string COL_VERSION = 'version';
 
-    /**
-     * @var string
-     */
     protected const string COL_CURRENT_STATE = 'current_state';
 
-    /**
-     * @var string
-     */
     protected const string COL_STATUS = 'status';
 
-    /**
-     * @var string
-     */
-    protected const string COL_MANUAL_ACTIONS = 'manual_actions';
+    protected const string COL_ACTIONS = 'actions';
 
-    /**
-     * @var string
-     */
     protected const string STATUS_FINISHED = 'Finished';
 
-    /**
-     * @var string
-     */
     protected const string STATUS_IN_PROGRESS = 'In progress';
 
-    /**
-     * Displayed in a cell when the underlying value is absent (no resolved state / no pinned version).
-     *
-     * @var string
-     */
     protected const string PLACEHOLDER_EMPTY_VALUE = '-';
 
+    protected const string PARAM_ID_PROCESS = 'id-process';
+
+    protected const string PARAM_ID_DEFINITION = 'id-definition';
+
+    protected const string PARAM_IDENTIFIER = 'identifier';
+
+    protected const string PARAM_BACK_ID_DEFINITION = 'back-id-definition';
+
+    protected const string PARAM_EVENT = 'event';
+
+    protected const string PARAM_REDIRECT_TARGET = 'redirect-target';
+
+    /**
+     * @uses \Spryker\Zed\Workflow\Communication\Controller\InstanceController::REDIRECT_TARGET_VERSION_VIEW
+     */
+    protected const string REDIRECT_TARGET_VERSION_VIEW = 'version-view';
+
     /**
      * @var string
      */
-    protected const string REQUEST_PARAM_ID_DEFINITION = 'id-definition';
+    protected $baseUrl = '/workflow/instance';
 
     /**
-     * @var string
+     * @var array<int, array<string, array<string>>>
      */
-    protected const string REQUEST_PARAM_IDENTIFIER = 'identifier';
-
-    /**
-     * @var string
-     */
-    protected const string REQUEST_PARAM_EVENT = 'event';
-
-    protected ?string $stateMachineName = null;
-
-    protected ?string $processName = null;
-
-    protected ?int $version = null;
-
-    protected bool $isSupportingDataResolved = false;
+    protected array $manualEventNamesIndexedByVersionAndState = [];
 
     public function __construct(
         protected SpyStateMachineProcessDefinitionInstanceQuery $stateMachineProcessDefinitionInstanceQuery,
         protected StateMachineFacadeInterface $stateMachineFacade,
-        protected WorkflowFacadeInterface $workflowFacade,
-        protected int $idStateMachineProcessDefinition
+        protected StateMachineProcessTransfer $stateMachineProcessTransfer,
+        protected int $idBackStateMachineProcessDefinition
     ) {
-    }
-
-    /**
-     * Resolves the version, owning process (name / state machine name) and final-state names for the
-     * definition once per request, so the controller does not need to gather them up front.
-     */
-    protected function resolveSupportingData(): void
-    {
-        if ($this->isSupportingDataResolved) {
-            return;
-        }
-
-        $this->isSupportingDataResolved = true;
-
-        $stateMachineProcessDefinitionTransfer = $this->findStateMachineProcessDefinition();
-        if ($stateMachineProcessDefinitionTransfer === null) {
-            return;
-        }
-
-        $this->version = $stateMachineProcessDefinitionTransfer->getVersion();
-        $stateMachineProcessTransfer = $stateMachineProcessDefinitionTransfer->getStateMachineProcessOrFail();
-
-        $this->stateMachineName = $stateMachineProcessTransfer->getStateMachineName();
-        $this->processName = $stateMachineProcessTransfer->getProcessName();
-    }
-
-    protected function findStateMachineProcessDefinition(): ?StateMachineProcessDefinitionTransfer
-    {
-        return $this->workflowFacade->getStateMachineProcessDefinitionCollection(
-            (new StateMachineProcessDefinitionCriteriaTransfer())
-                ->setStateMachineProcessDefinitionConditions(
-                    (new StateMachineProcessDefinitionConditionsTransfer())
-                        ->addIdStateMachineProcessDefinition($this->idStateMachineProcessDefinition),
-                ),
-        )->getStateMachineProcessDefinitions()->getIterator()->current() ?: null;
     }
 
     protected function configure(TableConfiguration $config): TableConfiguration
     {
-        $config->setUrl(sprintf('table?%s=%d', static::REQUEST_PARAM_ID_DEFINITION, $this->idStateMachineProcessDefinition));
+        $config->setUrl(Url::generate(static::URL_TABLE, [
+            static::PARAM_ID_PROCESS => $this->stateMachineProcessTransfer->getIdStateMachineProcessOrFail(),
+            static::PARAM_BACK_ID_DEFINITION => $this->idBackStateMachineProcessDefinition,
+        ])->build());
 
         $config->setHeader([
             SpyStateMachineProcessDefinitionInstanceTableMap::COL_IDENTIFIER => 'Subject Identifier',
+            static::COL_SUBJECT_TYPE => 'Subject Type',
             static::COL_VERSION => 'Version',
             static::COL_CURRENT_STATE => 'Current State',
             static::COL_STATUS => 'Status',
-            static::COL_MANUAL_ACTIONS => 'Manual Actions',
+            SpyStateMachineProcessDefinitionInstanceTableMap::COL_CREATED_AT => 'Creation Date',
+            static::COL_ACTIONS => 'Actions',
         ]);
 
         $config->setSortable([
             SpyStateMachineProcessDefinitionInstanceTableMap::COL_IDENTIFIER,
+            static::COL_VERSION,
             static::COL_CURRENT_STATE,
+            SpyStateMachineProcessDefinitionInstanceTableMap::COL_CREATED_AT,
         ]);
 
         $config->setRawColumns([
-            static::COL_VERSION,
             static::COL_CURRENT_STATE,
             static::COL_STATUS,
-            static::COL_MANUAL_ACTIONS,
+            static::COL_ACTIONS,
         ]);
 
         $config->setSearchable([
@@ -169,7 +122,8 @@ class InstanceTable extends AbstractTable
             SpyStateMachineItemStateTableMap::COL_NAME,
         ]);
 
-        $config->setDefaultSortField(SpyStateMachineProcessDefinitionInstanceTableMap::COL_IDENTIFIER, TableConfiguration::SORT_ASC);
+        $config->setDefaultSortField(SpyStateMachineProcessDefinitionInstanceTableMap::COL_CREATED_AT, TableConfiguration::SORT_DESC);
+        $config->setUseSorting(true);
 
         return $config;
     }
@@ -179,50 +133,63 @@ class InstanceTable extends AbstractTable
      */
     protected function prepareQuery(): SpyStateMachineProcessDefinitionInstanceQuery
     {
-        return $this->stateMachineProcessDefinitionInstanceQuery
-            ->filterByFkStateMachineProcessDefinition($this->idStateMachineProcessDefinition)
+        $stateMachineProcessDefinitionInstanceQuery = $this->stateMachineProcessDefinitionInstanceQuery
             ->leftJoinStateMachineItemState()
             ->withColumn(SpyStateMachineItemStateTableMap::COL_NAME, static::COL_CURRENT_STATE)
-            ->orderByCreatedAt(Criteria::DESC);
+            ->withColumn(SpyStateMachineProcessDefinitionTableMap::COL_VERSION, static::COL_VERSION);
+
+        $stateMachineProcessDefinitionInstanceQuery
+            ->useStateMachineProcessDefinitionQuery()
+                ->filterByFkStateMachineProcess($this->stateMachineProcessTransfer->getIdStateMachineProcessOrFail())
+            ->endUse();
+
+        return $stateMachineProcessDefinitionInstanceQuery;
     }
 
     /**
-     * @param \Spryker\Zed\Gui\Communication\Table\TableConfiguration $config
-     *
      * @return array<array<string, mixed>>
      */
     protected function prepareData(TableConfiguration $config): array
     {
-        $this->resolveSupportingData();
-
         $results = [];
         foreach ($this->runQuery($this->prepareQuery(), $config) as $item) {
             $identifier = (int)$item[SpyStateMachineProcessDefinitionInstanceTableMap::COL_IDENTIFIER];
-            $currentState = $item[static::COL_CURRENT_STATE];
+            $idStateMachineProcessDefinition = (int)$item[SpyStateMachineProcessDefinitionInstanceTableMap::COL_FK_STATE_MACHINE_PROCESS_DEFINITION];
+            $version = (int)$item[static::COL_VERSION];
+            $currentState = (string)$item[static::COL_CURRENT_STATE];
             $isInstanceFinished = $item[SpyStateMachineProcessDefinitionInstanceTableMap::COL_FINISHED_AT] !== null;
 
             $results[] = [
                 SpyStateMachineProcessDefinitionInstanceTableMap::COL_IDENTIFIER => $identifier,
-                static::COL_VERSION => $this->createVersionLink($identifier),
-                static::COL_CURRENT_STATE => $this->wrapWithTestSelector('workflow-instance-state', $currentState ?? static::PLACEHOLDER_EMPTY_VALUE),
+                static::COL_SUBJECT_TYPE => $this->stateMachineProcessTransfer->getSubjectType() ?? static::PLACEHOLDER_EMPTY_VALUE,
+                static::COL_VERSION => $version,
+                static::COL_CURRENT_STATE => $this->wrapWithTestSelector('workflow-instance-state', $currentState !== '' ? htmlspecialchars($currentState, ENT_QUOTES) : static::PLACEHOLDER_EMPTY_VALUE),
                 static::COL_STATUS => $this->wrapWithTestSelector('workflow-instance-status', $this->createStatusLabel($isInstanceFinished)),
-                static::COL_MANUAL_ACTIONS => $this->wrapWithTestSelector('workflow-instance-manual-actions', $this->createManualActionButtons($identifier, (string)$currentState)),
+                SpyStateMachineProcessDefinitionInstanceTableMap::COL_CREATED_AT => $item[SpyStateMachineProcessDefinitionInstanceTableMap::COL_CREATED_AT],
+                static::COL_ACTIONS => $this->createActionButtons($idStateMachineProcessDefinition, $identifier, $version, $currentState),
             ];
         }
 
         return $results;
     }
 
-    protected function createVersionLink(int $identifier): string
+    protected function createActionButtons(int $idStateMachineProcessDefinition, int $identifier, int $version, string $currentState): string
     {
-        $label = $this->version !== null ? (string)$this->version : static::PLACEHOLDER_EMPTY_VALUE;
+        return implode(' ', [
+            $this->createViewButton($idStateMachineProcessDefinition, $identifier),
+            ...$this->createManualActionButtons($idStateMachineProcessDefinition, $identifier, $version, $currentState),
+        ]);
+    }
 
+    protected function createViewButton(int $idStateMachineProcessDefinition, int $identifier): string
+    {
         return $this->generateViewButton(
             Url::generate(static::URL_VIEW, [
-                static::REQUEST_PARAM_ID_DEFINITION => $this->idStateMachineProcessDefinition,
-                static::REQUEST_PARAM_IDENTIFIER => $identifier,
+                static::PARAM_ID_DEFINITION => $idStateMachineProcessDefinition,
+                static::PARAM_IDENTIFIER => $identifier,
+                static::PARAM_BACK_ID_DEFINITION => $this->idBackStateMachineProcessDefinition,
             ]),
-            $label,
+            'View',
             ['data-qa' => 'workflow-instance-view'],
         );
     }
@@ -241,45 +208,61 @@ class InstanceTable extends AbstractTable
         return $this->generateLabel(static::STATUS_IN_PROGRESS, 'label-default');
     }
 
-    protected function createManualActionButtons(int $identifier, string $currentState): string
+    /**
+     * @return array<string>
+     */
+    protected function createManualActionButtons(int $idStateMachineProcessDefinition, int $identifier, int $version, string $currentState): array
     {
-        $manualEventNames = $this->findManualEventNames($currentState);
-        if ($manualEventNames === []) {
-            return '-';
-        }
-
         $buttons = [];
-        foreach ($manualEventNames as $eventName) {
-            $buttons[] = $this->generateButton(
+        foreach ($this->findManualEventNames($version, $currentState) as $eventName) {
+            $buttons[] = $this->generateFormButton(
                 Url::generate(static::URL_TRIGGER, [
-                    static::REQUEST_PARAM_ID_DEFINITION => $this->idStateMachineProcessDefinition,
-                    static::REQUEST_PARAM_IDENTIFIER => $identifier,
-                    static::REQUEST_PARAM_EVENT => $eventName,
+                    static::PARAM_ID_DEFINITION => $idStateMachineProcessDefinition,
+                    static::PARAM_IDENTIFIER => $identifier,
+                    static::PARAM_EVENT => $eventName,
+                    static::PARAM_BACK_ID_DEFINITION => $this->idBackStateMachineProcessDefinition,
+                    static::PARAM_REDIRECT_TARGET => static::REDIRECT_TARGET_VERSION_VIEW,
                 ]),
                 $eventName,
-                ['class' => 'btn-create', 'icon' => 'fa-play'],
-                ['data-qa' => sprintf('workflow-instance-manual-action %s', $eventName)],
+                InstanceEventTriggerForm::class,
+                [
+                    static::BUTTON_CLASS => 'btn-create',
+                    static::BUTTON_ICON => 'fa-play',
+                    'data-qa' => sprintf('workflow-instance-manual-action %s', $eventName),
+                ],
             );
         }
 
-        return implode(' ', $buttons);
+        return $buttons;
     }
 
     /**
-     * @return array<string> Manual events available from the given current state.
+     * @return array<string>
      */
-    protected function findManualEventNames(string $currentState): array
+    protected function findManualEventNames(int $version, string $currentState): array
     {
-        if ($this->processName === null || $this->stateMachineName === null || $currentState === '') {
+        if ($currentState === '') {
             return [];
         }
 
-        $stateMachineItemTransfer = (new StateMachineItemTransfer())
-            ->setStateMachineName($this->stateMachineName)
-            ->setProcessName($this->processName)
-            ->setStateName($currentState)
-            ->setVersion($this->version);
+        if (!isset($this->manualEventNamesIndexedByVersionAndState[$version][$currentState])) {
+            $this->manualEventNamesIndexedByVersionAndState[$version][$currentState] = $this->getManualEventNames($version, $currentState);
+        }
 
-        return $this->stateMachineFacade->getManualEventsForStateMachineItem($stateMachineItemTransfer);
+        return $this->manualEventNamesIndexedByVersionAndState[$version][$currentState];
+    }
+
+    /**
+     * @return array<string>
+     */
+    protected function getManualEventNames(int $version, string $currentState): array
+    {
+        return $this->stateMachineFacade->getManualEventsForStateMachineItem(
+            (new StateMachineItemTransfer())
+                ->setStateMachineName($this->stateMachineProcessTransfer->getStateMachineNameOrFail())
+                ->setProcessName($this->stateMachineProcessTransfer->getProcessNameOrFail())
+                ->setStateName($currentState)
+                ->setVersion($version),
+        );
     }
 }

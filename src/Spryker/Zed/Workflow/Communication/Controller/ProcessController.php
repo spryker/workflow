@@ -8,10 +8,14 @@
 namespace Spryker\Zed\Workflow\Communication\Controller;
 
 use Generated\Shared\Transfer\StateMachineProcessCollectionRequestTransfer;
+use Generated\Shared\Transfer\StateMachineProcessCollectionResponseTransfer;
+use Generated\Shared\Transfer\StateMachineProcessDefinitionTransfer;
 use Generated\Shared\Transfer\StateMachineProcessTransfer;
 use Spryker\Service\UtilText\Model\Url\Url;
 use Spryker\Zed\Workflow\Communication\Form\ProcessForm;
 use Spryker\Zed\Workflow\WorkflowConfig;
+use Symfony\Component\Form\FormError;
+use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -25,6 +29,13 @@ class ProcessController extends AbstractWorkflowController
     protected const string MESSAGE_WORKFLOW_ACTIVATED = 'The workflow was activated.';
 
     protected const string MESSAGE_WORKFLOW_DEACTIVATED = 'The workflow was deactivated.';
+
+    protected const string MESSAGE_WORKFLOW_CREATED = 'The workflow was created.';
+
+    /**
+     * @uses \Spryker\Zed\Workflow\Communication\Controller\VersionController::viewAction()
+     */
+    protected const string URL_VERSION_VIEW = '/workflow/version/view';
 
     /**
      * @return array<string, mixed>
@@ -48,15 +59,28 @@ class ProcessController extends AbstractWorkflowController
      */
     public function createAction(Request $request): array|RedirectResponse
     {
-        $processForm = $this->getFactory()->createProcessForm();
+        $processFormOptions = $this->getFactory()->createProcessFormDataProvider()->getOptions();
+
+        $processForm = $this->getFactory()->createProcessForm([], $processFormOptions);
         $processForm->handleRequest($request);
 
         if ($processForm->isSubmitted() && $processForm->isValid()) {
-            return $this->handleCreate($processForm->getData());
+            $stateMachineProcessCollectionResponseTransfer = $this->createStateMachineProcess($processForm->getData());
+
+            if ($stateMachineProcessCollectionResponseTransfer->getErrors()->count() === 0) {
+                $this->addSuccessMessage(static::MESSAGE_WORKFLOW_CREATED);
+
+                return $this->redirectResponse(Url::generate(static::URL_PROCESS_LIST)->build());
+            }
+
+            $this->addFormErrors($processForm, $stateMachineProcessCollectionResponseTransfer);
         }
 
         return $this->viewResponse([
             'processForm' => $processForm->createView(),
+            'availablePluginsIndexedBySubjectType' => $this->getFactory()->createAvailablePluginReader()->getAvailablePluginsIndexedBySubjectType(
+                $processFormOptions[ProcessForm::OPTION_SUBJECT_TYPES],
+            ),
         ]);
     }
 
@@ -76,6 +100,7 @@ class ProcessController extends AbstractWorkflowController
             $idStateMachineProcess,
             WorkflowConfig::PROCESS_DEFINITION_STATUS_ACTIVE,
             static::MESSAGE_WORKFLOW_ACTIVATED,
+            $this->buildStatusChangeRedirectUrl($request),
         );
     }
 
@@ -95,20 +120,20 @@ class ProcessController extends AbstractWorkflowController
             $idStateMachineProcess,
             WorkflowConfig::PROCESS_DEFINITION_STATUS_INACTIVE,
             static::MESSAGE_WORKFLOW_DEACTIVATED,
+            $this->buildStatusChangeRedirectUrl($request),
         );
     }
 
     protected function updateProcessStatus(
         int $idStateMachineProcess,
         string $status,
-        string $successMessage
+        string $successMessage,
+        string $redirectUrl
     ): RedirectResponse {
-        $processListUrl = Url::generate(static::URL_PROCESS_LIST)->build();
-
         $stateMachineProcessTransfer = $this->findStateMachineProcessOrFlashError($idStateMachineProcess);
 
         if ($stateMachineProcessTransfer === null) {
-            return $this->redirectResponse($processListUrl);
+            return $this->redirectResponse($redirectUrl);
         }
 
         $stateMachineProcessCollectionResponseTransfer = $this->getFacade()->updateStateMachineProcessCollection(
@@ -126,43 +151,48 @@ class ProcessController extends AbstractWorkflowController
                 $this->addErrorMessage($errorTransfer->getMessageOrFail());
             }
 
-            return $this->redirectResponse($processListUrl);
+            return $this->redirectResponse($redirectUrl);
         }
 
         $this->addSuccessMessage($successMessage);
 
-        return $this->redirectResponse($processListUrl);
+        return $this->redirectResponse($redirectUrl);
+    }
+
+    protected function buildStatusChangeRedirectUrl(Request $request): string
+    {
+        $idStateMachineProcessDefinition = $request->query->getInt(static::PARAM_ID_DEFINITION);
+
+        if ($idStateMachineProcessDefinition === 0) {
+            return Url::generate(static::URL_PROCESS_LIST)->build();
+        }
+
+        return Url::generate(static::URL_VERSION_VIEW, [static::PARAM_ID_DEFINITION => $idStateMachineProcessDefinition])->build();
     }
 
     /**
      * @param array<string, mixed> $data
-     *
-     * @return \Symfony\Component\HttpFoundation\RedirectResponse
      */
-    protected function handleCreate(array $data): RedirectResponse
+    protected function createStateMachineProcess(array $data): StateMachineProcessCollectionResponseTransfer
     {
-        $name = (string)$data[ProcessForm::FIELD_NAME];
-        $stateMachineProcessTransfer = (new StateMachineProcessTransfer())
-            ->setStateMachineName($name)
-            ->setProcessName($name)
-            ->setSubjectType($data[ProcessForm::FIELD_SUBJECT_TYPE])
-            ->setDescription($data[ProcessForm::FIELD_DESCRIPTION] ?? null);
+        $stateMachineProcessTransfer = $this->getFactory()->createProcessFormDataMapper()->mapProcessFormDataToStateMachineProcessTransfer(
+            $data,
+            new StateMachineProcessTransfer(),
+            new StateMachineProcessDefinitionTransfer(),
+        );
 
-        $stateMachineProcessCollectionResponseTransfer = $this->getFacade()->createStateMachineProcessCollection(
+        return $this->getFacade()->createStateMachineProcessCollection(
             (new StateMachineProcessCollectionRequestTransfer())
                 ->addStateMachineProcess($stateMachineProcessTransfer),
         );
+    }
 
-        if ($stateMachineProcessCollectionResponseTransfer->getErrors()->count() > 0) {
-            foreach ($stateMachineProcessCollectionResponseTransfer->getErrors() as $errorTransfer) {
-                $this->addErrorMessage($errorTransfer->getMessageOrFail());
-            }
-
-            return $this->redirectResponse(Url::generate(static::URL_PROCESS_LIST)->build());
+    protected function addFormErrors(
+        FormInterface $processForm,
+        StateMachineProcessCollectionResponseTransfer $stateMachineProcessCollectionResponseTransfer
+    ): void {
+        foreach ($stateMachineProcessCollectionResponseTransfer->getErrors() as $errorTransfer) {
+            $processForm->addError(new FormError($errorTransfer->getMessageOrFail()));
         }
-
-        $this->addSuccessMessage('The workflow was created.');
-
-        return $this->redirectResponse(Url::generate(static::URL_PROCESS_LIST)->build());
     }
 }

@@ -1,0 +1,49 @@
+{% set nameNotSet = 'Name not set' | trans %}
+{% set subjectTypeNotSet = 'Not set' | trans %}
+{% set noDescription = 'No description' | trans %}
+
+<div class="js-workflow-summary"
+        data-qa="workflow-summary">
+    <div class="d-flex gap-3">
+        <div class="flex-grow-1">
+            <div class="workflow-parent-context m-b-xs">
+                <span class="material-symbols-outlined align-middle m-r-xs">flowchart</span> <strong class="js-workflow-summary-name" data-qa="workflow-summary-name" data-message-empty="{{ nameNotSet }}">{{ processName ?? nameNotSet }}</strong>
+                <span class="badge text-bg-light m-l-xs" data-qa="workflow-summary-subject-type">{{ 'Subject Type' | trans }}: <span class="js-workflow-summary-subject-type" data-message-empty="{{ subjectTypeNotSet }}">{{ subjectType ?? subjectTypeNotSet }}</span></span>
+            </div>
+
+            <div class="js-workflow-summary-description m-b-xs text-muted" data-qa="workflow-summary-description" data-message-empty="{{ noDescription }}">{{ description|default(null) ?: noDescription }}</div>
+
+            <div class="m-b-md d-flex align-items-center gap-1" data-qa="workflow-version-triggers">
+                <strong>{{ 'Triggers' | trans }}:</strong>
+                <span class="d-inline-flex flex-wrap align-items-center gap-1 js-workflow-summary-triggers"
+                        data-message-no-triggers="{{ 'No triggers configured.' | trans }}">
+                    {% for eventName in triggerEventNames | default([]) %}
+                        <span class="badge text-bg-light" data-qa="workflow-version-trigger">{{ eventName }}</span>
+                    {% else %}
+                        <span>{{ 'No triggers configured.' | trans }}</span>
+                    {% endfor %}
+                </span>
+
+                <span class="material-symbols-outlined info-tooltip" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ 'Starts this workflow - applies to all versions' | trans }}">info</span>
+            </div>
+        </div>
+        {% if editModeEnabled | default(false) %}
+            <div>
+                {% set isProcessEditFormExpanded = processEditForm.vars.submitted and not processEditForm.vars.valid %}
+
+                {% block process_edit_toggle %}
+                    <button type="button"
+                            class="btn btn-sm btn-outline text-nowrap"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#workflow-process-edit"
+                            aria-controls="workflow-process-edit"
+                            aria-expanded="{{ isProcessEditFormExpanded ? 'true' : 'false' }}"
+                            data-qa="workflow-process-edit-toggle">
+                        <span class="material-symbols-outlined">edit</span> {{ 'Edit description and triggers' | trans }}
+                    </button>
+                {% endblock %}
+            </div>
+        {% endif %}
+    </div>
+    <hr>
+</div>

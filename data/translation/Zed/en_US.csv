@@ -1,7 +1,4 @@
 Workflows,Workflows
-"Workflow Versions","Workflow Versions"
-"Workflow Triggers","Workflow Triggers"
-"Workflow Instances","Workflow Instances"
 "Create Workflow","Create Workflow"
 "Create Version","Create Version"
 Workflow,Workflow
@@ -18,9 +15,6 @@ Activate,Activate
 Deactivate,Deactivate
 Instances,Instances
 Save,Save
-"Save Triggers","Save Triggers"
-"Select events that start this workflow.","Select events that start this workflow."
-"No registered trigger events for this subject type.","No registered trigger events for this subject type."
 "Trigger events","Trigger events"
 Identifier,Identifier
 "Subject Identifier","Subject Identifier"
@@ -28,13 +22,10 @@ Identifier,Identifier
 "State machine name","State machine name"
 "Workflow name","Workflow name"
 Description,Description
-"Definition (state-machine-01 XML)","Definition (state-machine-01 XML)"
 "The workflow was created.","The workflow was created."
 "The version was saved.","The version was saved."
 "The version was not found.","The version was not found."
 "The version was activated.","The version was activated."
-"The version was deactivated.","The version was deactivated."
-"The triggers were saved.","The triggers were saved."
 "Definition activation rejected: the definition is invalid.","Definition activation rejected: the definition is invalid."
 "Current State","Current State"
 "State Machines","State Machines"
@@ -48,26 +39,22 @@ inactive,Inactive
 "Back to workflows","Back to workflows"
 "Back to versions","Back to versions"
 "Back to instances","Back to instances"
-"Back to workflow instances","Back to workflow instances"
 "State machine graph","State machine graph"
 "Workflow graph","Workflow graph"
 Definition,Definition
 Back,Back
 "State machine:","State machine:"
 "Name the state machine, then create its first process.","Name the state machine, then create its first process."
-Continue,Continue
 "Select a state machine","Select a state machine"
 "The workflow was activated.","The workflow was activated."
 "The workflow was deactivated.","The workflow was deactivated."
-"Validate definition","Validate definition"
+Validate,Validate
 Validating…,Validating…
 "The definition is valid.","The definition is valid."
 "This version is not valid yet. Fix the issues below, then save a new version. The definition is validated again when you activate it.","This version is not valid yet. Fix the issues below, then save a new version. The definition is validated again when you activate it."
 Event,Event
 "Validation request failed. Please try again.","Validation request failed. Please try again."
 "The definition has the following errors:","The definition has the following errors:"
-"The currently active version %active% will be deactivated.","The currently active version %active% will be deactivated."
-"Activate version %target% as the primary version?","Activate version %target% as the primary version?"
 "Manual events","Manual events"
 "No manual events are available from the current state.","No manual events are available from the current state."
 "Trigger a manual event to move this instance to the next state.","Trigger a manual event to move this instance to the next state."
@@ -76,7 +63,6 @@ Event,Event
 State,State
 Date,Date
 #,#
-"You are about to create an editable copy of this workflow. Your changes are saved as a new version - the current one keeps running. Continue?","You are about to create an editable copy of this workflow. Your changes are saved as a new version - the current one keeps running. Continue?"
 Delete,Delete
 "The version was deleted.","The version was deleted."
 "This permanently deletes this version. It has no instances, so nothing running is affected. Delete it?","This permanently deletes this version. It has no instances, so nothing running is affected. Delete it?"
@@ -91,9 +77,7 @@ Delete,Delete
 "Set triggers & activate","Set triggers & activate"
 "Choose the event that starts it, then switch it to Active.","Choose the event that starts it, then switch it to Active."
 "Show how this works","Show how this works"
-"Activate version","Activate version"
 Cancel,Cancel
-"Create an editable copy","Create an editable copy"
 Edit,Edit
 "Delete version","Delete version"
 "The name may only contain letters, numbers, spaces, hyphens and underscores.","The name may only contain letters, numbers, spaces, hyphens and underscores."
@@ -124,7 +108,6 @@ Transition,Transition
 "On enter (automatic)","On enter (automatic)"
 Timeout,Timeout
 Manual,Manual
-"3 second","3 second"
 Command,Command
 None,None
 "Changes apply to every transition using this event.","Changes apply to every transition using this event."
@@ -163,3 +146,62 @@ Auto-arrange,Auto-arrange
 "No initial state is specified. Mark one state as the initial state.","No initial state is specified. Mark one state as the initial state."
 "Initial state ""%s"" does not exist as a defined state.","Initial state ""%s"" does not exist as a defined state."
 "Version could not be activated because it is invalid, please check the errors: %errors%","Version could not be activated because it is invalid, please check the errors: %errors%"
+"Deactivate %name%?","Deactivate %name%?"
+"New %triggers% events will no longer start this workflow","New %triggers% events will no longer start this workflow"
+"New events will no longer start this workflow","New events will no longer start this workflow"
+"No triggers configured.","No triggers configured."
+"Deactivate workflow","Deactivate workflow"
+"Workflow ""%name%"" will be deactivated. You can activate it again at any time. Deactivate it?","Workflow ""%name%"" will be deactivated. You can activate it again at any time. Deactivate it?"
+"Not set","Not set"
+Collapse,Collapse
+"Version %version%","Version %version%"
+"Create workflow","Create workflow"
+"Select subject type","Select subject type"
+"Select at least one trigger.","Select at least one trigger."
+Create,Create
+"Select trigger events","Select trigger events"
+"Select only triggers of the selected subject type.","Select only triggers of the selected subject type."
+"Edit description and triggers","Edit description and triggers"
+"Save details","Save details"
+"The workflow details were saved.","The workflow details were saved."
+"Up to %max% characters.","Up to %max% characters."
+"Please select a Subject Type before choosing a Trigger.","Please select a Subject Type before choosing a Trigger."
+"Active version","Active version"
+"New version","New version"
+"based on version %version%","based on version %version%"
+Author,Author
+"Created by","Created by"
+"No active version","No active version"
+Active,Active
+View,View
+"Activate %name%?","Activate %name%?"
+"New %triggers% events will start this workflow","New %triggers% events will start this workflow"
+"No trigger is set, so no event will start this workflow","No trigger is set, so no event will start this workflow"
+"Applies to all versions","Applies to all versions"
+"Save as new version","Save as new version"
+"Workflow activity","Workflow activity"
+"Creation Date","Creation Date"
+"Back to workflow","Back to workflow"
+"Starts this workflow - applies to all versions","Starts this workflow - applies to all versions"
+"Event name (leave empty for condition-only)","Event name (leave empty for condition-only)"
+"In progress","In progress"
+Finished,Finished
+"This is already the active version","This is already the active version"
+Instance,Instance
+"Make version %version% the active version?","Make version %version% the active version?"
+"Version %version% replaces version %activeVersion% as the active version of %name%","Version %version% replaces version %activeVersion% as the active version of %name%"
+"Version %version% becomes the active version of %name%","Version %version% becomes the active version of %name%"
+"The active version cannot be deleted.","The active version cannot be deleted."
+"Versions containing instances cannot be deleted.","Versions containing instances cannot be deleted."
+"Name not set","Name not set"
+"No description","No description"
+"Leave this page?","Leave this page?"
+"Are you sure? Unsaved changes will be lost.","Are you sure? Unsaved changes will be lost."
+Leave,Leave
+"A number and an English time unit: second, minute, hour, day, week or month. Examples:","A number and an English time unit: second, minute, hour, day, week or month. Examples:"
+"Undone: event linked to an existing event","Undone: event linked to an existing event"
+"Used by transitions:","Used by transitions:"
+"Changes apply to all of them.","Changes apply to all of them."
+"State names must be unique. Rename the states that share a name.","State names must be unique. Rename the states that share a name."
+"Another state already has this name.","Another state already has this name."
+"This workflow has no active version. Are you sure you want to activate it?","This workflow has no active version. Are you sure you want to activate it?"

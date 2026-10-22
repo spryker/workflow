@@ -14,6 +14,7 @@ use Generated\Shared\Transfer\StateMachineProcessDefinitionCollectionRequestTran
 use Generated\Shared\Transfer\StateMachineProcessDefinitionConditionsTransfer;
 use Generated\Shared\Transfer\StateMachineProcessDefinitionCriteriaTransfer;
 use Generated\Shared\Transfer\StateMachineProcessDefinitionTransfer;
+use Generated\Shared\Transfer\StateMachineProcessTransfer;
 use Spryker\Zed\Workflow\WorkflowConfig;
 use SprykerTest\Zed\Workflow\Helper\WorkflowHelper;
 use SprykerTest\Zed\Workflow\WorkflowBusinessTester;
@@ -59,6 +60,40 @@ class DefinitionCollectionTest extends Unit
         );
     }
 
+    public function testGetStateMachineProcessDefinitionCollectionReturnsTheAuthorOfTheCreatedVersion(): void
+    {
+        // Arrange
+        $userTransfer = $this->tester->haveUser();
+        $stateMachineProcessTransfer = $this->tester->haveStateMachineProcess();
+        $stateMachineProcessDefinitionCollectionResponseTransfer = $this->tester->getFacade()
+            ->createStateMachineProcessDefinitionCollection(
+                (new StateMachineProcessDefinitionCollectionRequestTransfer())
+                    ->addStateMachineProcessDefinition(
+                        (new StateMachineProcessDefinitionTransfer())
+                            ->setStateMachineProcess($stateMachineProcessTransfer)
+                            ->setUser($userTransfer)
+                            ->setInitialState('new')
+                            ->setDefinition(sprintf(WorkflowHelper::VALID_DEFINITION_TEMPLATE, $stateMachineProcessTransfer->getProcessNameOrFail())),
+                    ),
+            );
+        $idStateMachineProcessDefinition = $stateMachineProcessDefinitionCollectionResponseTransfer
+            ->getStateMachineProcessDefinitions()
+            ->getIterator()
+            ->current()
+            ->getIdStateMachineProcessDefinitionOrFail();
+
+        // Act
+        $stateMachineProcessDefinitionCollectionTransfer = $this->tester->getFacade()->getStateMachineProcessDefinitionCollection(
+            (new StateMachineProcessDefinitionCriteriaTransfer())->setStateMachineProcessDefinitionConditions(
+                (new StateMachineProcessDefinitionConditionsTransfer())->addIdStateMachineProcessDefinition($idStateMachineProcessDefinition),
+            ),
+        );
+
+        // Assert
+        $stateMachineProcessDefinitionTransfer = $stateMachineProcessDefinitionCollectionTransfer->getStateMachineProcessDefinitions()->getIterator()->current();
+        $this->assertSame($userTransfer->getIdUser(), $stateMachineProcessDefinitionTransfer->getUser()->getIdUser());
+    }
+
     public function testCreateStateMachineProcessDefinitionCollectionIncrementsVersion(): void
     {
         // Arrange
@@ -88,6 +123,31 @@ class DefinitionCollectionTest extends Unit
         // Assert
         $this->assertTrue($stateMachineDefinitionValidationResponseTransfer->getIsValid());
         $this->assertCount(0, $stateMachineDefinitionValidationResponseTransfer->getErrors());
+    }
+
+    public function testValidateStateMachineProcessDefinitionUsesTheProcessNameOfAProcessWithoutId(): void
+    {
+        // Arrange
+        $stateMachineProcessDefinitionTransfer = (new StateMachineProcessDefinitionTransfer())
+            ->setStateMachineProcess(
+                (new StateMachineProcessTransfer())
+                    ->setProcessName('not-persisted-process')
+                    ->setSubjectType(WorkflowHelper::SUBJECT_TYPE),
+            )
+            ->setInitialState('new')
+            ->setDefinition(sprintf(WorkflowHelper::VALID_DEFINITION_TEMPLATE, 'a-different-name'));
+
+        // Act
+        $stateMachineDefinitionValidationResponseTransfer = $this->tester->getFacade()
+            ->validateStateMachineProcessDefinition($stateMachineProcessDefinitionTransfer);
+
+        // Assert
+        $this->assertFalse($stateMachineDefinitionValidationResponseTransfer->getIsValid());
+        $this->assertValidationError(
+            $stateMachineDefinitionValidationResponseTransfer,
+            'process_name_mismatch',
+            'The main process name "a-different-name" in the definition must match the process name "not-persisted-process".',
+        );
     }
 
     public function testValidateStateMachineProcessDefinitionRejectsMalformedXml(): void
@@ -124,6 +184,26 @@ class DefinitionCollectionTest extends Unit
         // Assert
         $this->assertFalse($stateMachineDefinitionValidationResponseTransfer->getIsValid());
         $this->assertValidationError($stateMachineDefinitionValidationResponseTransfer, 'empty_definition', 'The definition must not be empty.');
+    }
+
+    public function testValidateStateMachineProcessDefinitionRejectsNotExistingProcess(): void
+    {
+        // Arrange
+        $stateMachineProcessDefinitionTransfer = (new StateMachineProcessDefinitionTransfer())
+            ->setStateMachineProcess((new StateMachineProcessTransfer())->setIdStateMachineProcess(PHP_INT_MAX))
+            ->setInitialState('new')
+            ->setDefinition(sprintf(WorkflowHelper::VALID_DEFINITION_TEMPLATE, 'any-process'));
+
+        // Act
+        $stateMachineDefinitionValidationResponseTransfer = $this->tester->getFacade()
+            ->validateStateMachineProcessDefinition($stateMachineProcessDefinitionTransfer);
+
+        // Assert
+        $this->assertValidationError(
+            $stateMachineDefinitionValidationResponseTransfer,
+            'process_not_found',
+            sprintf('The process with the ID "%d" does not exist.', PHP_INT_MAX),
+        );
     }
 
     public function testValidateStateMachineProcessDefinitionRejectsMismatchedMainProcessName(): void

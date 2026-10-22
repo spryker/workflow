@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * What the diagram writes next to a transition — renderer-independent, so every renderer describes
  * a transition identically, and the layout can reserve room for it.
@@ -14,14 +12,12 @@
  * at all, so nothing here needs translating.
  */
 
-// Advance width of the label font at its two sizes. Used only to reserve layout space — the layout
-// has no DOM to measure in — so the figures are deliberately generous: reserving a little too much
-// only spreads the diagram, while reserving too little puts the label on top of a state box.
-// Calibrated against a rendered 45-character detail line measuring 6.42px per character.
+import { LABEL_LINE_HEIGHT } from './state-machine-canvas-shared';
+
+// Deliberately generous: reserving too little space puts the label on top of a state box.
 const TITLE_CHARACTER_WIDTH = 7.2;
 const DETAIL_CHARACTER_WIDTH = 6.6;
-const TITLE_LINE_HEIGHT = 15;
-const DETAIL_LINE_HEIGHT = 14;
+const TITLE_LINE_HEIGHT = LABEL_LINE_HEIGHT + 1;
 const LABEL_PADDING = 12;
 
 /**
@@ -31,7 +27,7 @@ const LABEL_PADDING = 12;
  * @returns {Array<string>} the event name, then its command and type, then the transition's
  *   condition — bare values, one per line; empty when the transition carries nothing worth drawing
  */
-function transitionLabelLines(model, transition) {
+export function transitionLabelLines(model, transition) {
     const event = transition.eventId ? model.getEvent(transition.eventId) : null;
     const lines = [];
 
@@ -76,7 +72,7 @@ function eventTypeLine(event) {
  *
  * @returns {{width: number, height: number}} zero for a transition with no label
  */
-function transitionLabelSize(lines) {
+export function transitionLabelSize(lines) {
     if (!lines.length) {
         return { width: 0, height: 0 };
     }
@@ -88,8 +84,6 @@ function transitionLabelSize(lines) {
 
     return {
         width: Math.ceil(Math.max(titleWidth, detailWidth)) + LABEL_PADDING * 2,
-        height: TITLE_LINE_HEIGHT + (lines.length - 1) * DETAIL_LINE_HEIGHT + LABEL_PADDING,
+        height: TITLE_LINE_HEIGHT + (lines.length - 1) * LABEL_LINE_HEIGHT + LABEL_PADDING,
     };
 }
-
-module.exports = { transitionLabelLines, transitionLabelSize };

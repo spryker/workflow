@@ -46,7 +46,8 @@ class DefinitionWriter implements DefinitionWriterInterface
         protected WorkflowEntityManagerInterface $workflowEntityManager,
         protected WorkflowRepositoryInterface $workflowRepository,
         protected DefinitionValidatorInterface $definitionValidator,
-        protected TransitionFlagExpanderInterface $transitionFlagExpander
+        protected TransitionFlagExpanderInterface $transitionFlagExpander,
+        protected DefinitionValidatorInterface $definitionCreationValidator
     ) {
     }
 
@@ -64,6 +65,14 @@ class DefinitionWriter implements DefinitionWriterInterface
         $stateMachineProcessDefinitionCollectionResponseTransfer = new StateMachineProcessDefinitionCollectionResponseTransfer();
 
         foreach ($stateMachineProcessDefinitionCollectionRequestTransfer->getStateMachineProcessDefinitions() as $stateMachineProcessDefinitionTransfer) {
+            $stateMachineDefinitionValidationResponseTransfer = $this->definitionCreationValidator->validate($stateMachineProcessDefinitionTransfer);
+
+            if (!$stateMachineDefinitionValidationResponseTransfer->getIsValid()) {
+                $this->addValidationErrors($stateMachineDefinitionValidationResponseTransfer, $stateMachineProcessDefinitionCollectionResponseTransfer);
+
+                continue;
+            }
+
             $persistedStateMachineProcessDefinitionTransfer = $this->findStateMachineProcessDefinitionByVersion($stateMachineProcessDefinitionTransfer);
 
             if ($persistedStateMachineProcessDefinitionTransfer !== null) {

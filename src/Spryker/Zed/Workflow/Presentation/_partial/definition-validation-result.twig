@@ -1,0 +1,13 @@
+<div class="js-definition-validation-result" data-qa="workflow-definition-validation-result"></div>
+
+{# The messages are inserted as text, never as HTML. #}
+<template class="js-definition-validation-message-template">
+    <div class="alert d-block js-definition-validation-message"></div>
+</template>
+
+<template class="js-definition-validation-errors-template">
+    <div class="alert d-block alert-danger">
+        <strong>{{ 'The definition has the following errors:' | trans }}</strong>
+        <ul class="js-definition-validation-errors-list"></ul>
+    </div>
+</template>

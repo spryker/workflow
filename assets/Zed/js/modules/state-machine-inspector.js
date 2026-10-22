@@ -10,11 +10,6 @@
  * The panel shows an entity's fields only when exactly ONE entity is selected. A multi-selection
  * gets the summary panel instead: the fields of several entities cannot be shown in one set of
  * controls, but deleting the whole selection is offered there.
- *
- * The transition panel treats events as one-time: the event name is entered as free text (events
- * are not reused across transitions in practice), and the event's own fields (type, timeout,
- * command) edit that transition's event. Leaving the name empty makes it a condition-only
- * transition.
  */
 
 function qs(root, selector) {
@@ -28,6 +23,11 @@ function qs(root, selector) {
  * @param {HTMLSelectElement} select
  * @param {Array<string>} values
  */
+function replacePluginOptions(select, values) {
+    [...select.options].filter((option) => option.value !== '').forEach((option) => option.remove());
+    appendPluginOptions(select, values);
+}
+
 function appendPluginOptions(select, values) {
     values.forEach((value) => {
         const option = document.createElement('option');
@@ -43,9 +43,10 @@ function appendPluginOptions(select, values) {
  *
  * @param {HTMLInputElement} input
  * @param {string} value
+ * @param {boolean} isSameEntity
  */
-function setValueUnlessFocused(input, value) {
-    if (document.activeElement !== input) {
+function setValueUnlessEditing(input, value, isSameEntity) {
+    if (!isSameEntity || document.activeElement !== input) {
         input.value = value;
     }
 }
@@ -95,6 +96,7 @@ class StateMachineInspector {
         this.root = root;
         this.model = model;
         this.callbacks = callbacks;
+        this.renderedEntityKey = null;
 
         appendPluginOptions(qs(root, '.js-sm-event-command'), plugins.commands);
         appendPluginOptions(qs(root, '.js-sm-transition-condition'), plugins.conditions);
@@ -103,12 +105,27 @@ class StateMachineInspector {
         this.bindTransitionControls();
     }
 
+    /**
+     * @param {{commands: Array<string>, conditions: Array<string>}} plugins
+     */
+    setAvailablePlugins(plugins) {
+        replacePluginOptions(qs(this.root, '.js-sm-event-command'), plugins.commands);
+        replacePluginOptions(qs(this.root, '.js-sm-transition-condition'), plugins.conditions);
+        this.render();
+    }
+
     bindStateControls() {
         qs(this.root, '.js-sm-state-name').addEventListener('input', (event) => {
             const selection = this.selectedState();
 
             if (selection) {
                 this.model.renameState(selection.id, event.target.value);
+            }
+        });
+
+        qs(this.root, '.js-sm-state-name').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.target.blur();
             }
         });
 
@@ -137,6 +154,20 @@ class StateMachineInspector {
 
             if (selection) {
                 this.model.setTransitionEventName(selection.id, event.target.value);
+            }
+        });
+
+        qs(this.root, '.js-sm-transition-event-name').addEventListener('change', () => {
+            const selection = this.selectedTransition();
+
+            if (selection) {
+                this.model.linkTransitionEventByName(selection.id);
+            }
+        });
+
+        qs(this.root, '.js-sm-transition-event-name').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.target.blur();
             }
         });
 
@@ -217,6 +248,10 @@ class StateMachineInspector {
 
     render() {
         const selection = this.callbacks.getSelection();
+        const single = selection.single();
+        const entityKey = single ? `${single.kind}:${single.id}` : null;
+        const isSameEntity = entityKey === this.renderedEntityKey;
+        this.renderedEntityKey = entityKey;
         const emptyBox = qs(this.root, '.js-sm-inspector-empty');
         const stateBox = qs(this.root, '.js-sm-state-inspector');
         const transitionBox = qs(this.root, '.js-sm-transition-inspector');
@@ -240,7 +275,7 @@ class StateMachineInspector {
         const state = this.selectedState();
 
         if (state && this.model.getState(state.id)) {
-            this.renderState(this.model.getState(state.id));
+            this.renderState(this.model.getState(state.id), isSameEntity);
             stateBox.classList.remove('hidden');
 
             return;
@@ -249,7 +284,7 @@ class StateMachineInspector {
         const transition = this.selectedTransition();
 
         if (transition && this.model.getTransition(transition.id)) {
-            this.renderTransition(this.model.getTransition(transition.id));
+            this.renderTransition(this.model.getTransition(transition.id), isSameEntity);
             transitionBox.classList.remove('hidden');
 
             return;
@@ -282,26 +317,35 @@ class StateMachineInspector {
         }
     }
 
-    renderState(state) {
-        setValueUnlessFocused(qs(this.root, '.js-sm-state-name'), state.name);
-        setValueUnlessFocused(qs(this.root, '.js-sm-state-display'), state.display);
+    renderState(state, isSameEntity) {
+        setValueUnlessEditing(qs(this.root, '.js-sm-state-name'), state.name, isSameEntity);
+        qs(this.root, '.js-sm-state-name').classList.toggle(
+            'is-invalid',
+            this.model.isStateNameTaken(state.id, state.name),
+        );
+        setValueUnlessEditing(qs(this.root, '.js-sm-state-display'), state.display, isSameEntity);
         qs(this.root, '.js-sm-state-initial').checked = this.model.initialStateId === state.id;
     }
 
-    renderTransition(transition) {
+    renderTransition(transition, isSameEntity) {
         const transitionEvent = transition.eventId ? this.model.getEvent(transition.eventId) : null;
 
-        setValueUnlessFocused(
+        setValueUnlessEditing(
             qs(this.root, '.js-sm-transition-event-name'),
             transitionEvent ? transitionEvent.name : '',
+            isSameEntity,
         );
 
         const eventDetails = qs(this.root, '.js-sm-event-details');
         eventDetails.classList.toggle('hidden', !transitionEvent);
 
+        const transitionCount = transitionEvent ? this.model.countTransitionsUsingEvent(transitionEvent.id) : 0;
+        qs(this.root, '.js-sm-event-transition-count').textContent = String(transitionCount);
+        qs(this.root, '.js-sm-event-shared-hint').classList.toggle('hidden', transitionCount < 2);
+
         if (transitionEvent) {
             qs(this.root, '.js-sm-event-type').value = transitionEvent.eventType;
-            setValueUnlessFocused(qs(this.root, '.js-sm-event-timeout'), transitionEvent.timeout);
+            setValueUnlessEditing(qs(this.root, '.js-sm-event-timeout'), transitionEvent.timeout, isSameEntity);
             setSelectValue(qs(this.root, '.js-sm-event-command'), transitionEvent.command);
             qs(this.root, '.js-sm-event-timeout-group').classList.toggle(
                 'hidden',

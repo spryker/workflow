@@ -22,11 +22,13 @@
      {% if readOnly %}data-readonly="1" data-initial-state="{{ initialState|default('') }}"{% endif %}
      {% if currentState is defined and currentState %}data-current-state="{{ currentState }}"{% endif %}
      {% if canvasRenderer is defined and canvasRenderer %}data-renderer="{{ canvasRenderer }}"{% endif %}
+     {% if processName is defined and processName %}data-process-name="{{ processName }}"{% endif %}
      data-message-no-states="{{ 'Add at least one state.' | trans }}"
      data-message-no-initial-state="{{ 'The initial state is not specified. Mark one state as the initial state.' | trans }}"
      data-message-invalid-xml="{{ 'The XML could not be parsed. Fix the definition to update the canvas.' | trans }}"
      data-message-incomplete-xml="{{ 'The definition has no states yet. The canvas keeps the last applied version.' | trans }}"
-     data-message-rename-hint="{{ 'Press Enter to save the name, Escape to cancel.' | trans }}">
+     data-message-rename-hint="{{ 'Press Enter to save the name, Escape to cancel.' | trans }}"
+     data-message-duplicate-state-name="{{ 'State names must be unique. Rename the states that share a name.' | trans }}">
     <div class="row">
         <div class="col-lg-9">
             {# Icon-only controls; the hint sits on the same line so the canvas keeps its height. #}
@@ -70,6 +72,15 @@
                 </span>
             </div>
             <div class="workflow-canvas js-sm-canvas" data-qa="workflow-canvas"></div>
+            {% if not readOnly %}
+                {# The message is inserted as text, never as HTML. #}
+                <template class="js-sm-undo-flash-template">
+                    <div class="alert alert-info js-sm-undo-flash" data-qa="workflow-undo-flash" role="status">
+                        <i class="fas fa-info-circle alert__icon"></i>
+                        <div class="alert__text js-sm-undo-flash-text"></div>
+                    </div>
+                </template>
+            {% endif %}
         </div>
 
         <div class="col-lg-3">
@@ -117,6 +128,7 @@
                         <div class="form-group">
                             <label class="workflow-inspector-label">{{ 'Name' | trans }}</label>
                             <input type="text" class="form-control js-sm-state-name" data-qa="workflow-state-name">
+                            <div class="invalid-feedback">{{ 'Another state already has this name.' | trans }}</div>
                         </div>
                         <div class="form-group">
                             <label class="workflow-inspector-label">{{ 'Display name' | trans }}</label>
@@ -135,16 +147,18 @@
                         {% endif %}
                     </div>
 
-                    {# Transition inspector. The event name is entered as free text — events are
-                       one-time in practice, so each transition names its own event; the fields
-                       below edit that event. Leaving the name empty makes it a condition-only
-                       transition. #}
+                    {# Transitions naming the same event share it, so the fields below edit it for all of them.
+                       Leaving the name empty makes it a condition-only transition. #}
                     <div class="hidden js-sm-transition-inspector">
                         <h5>{{ 'Transition' | trans }}</h5>
                         <div class="form-group">
                             <label class="workflow-inspector-label">{{ 'Event' | trans }}</label>
                             <input type="text" class="form-control js-sm-transition-event-name" data-qa="workflow-transition-event"
                                    placeholder="{{ 'Event name (leave empty for condition-only)' | trans }}">
+                            <small class="form-text text-muted hidden js-sm-event-shared-hint" data-qa="workflow-event-shared-hint">
+                                {{ 'Used by transitions:' | trans }} <span class="js-sm-event-transition-count" data-qa="workflow-event-transition-count"></span>.
+                                {{ 'Changes apply to all of them.' | trans }}
+                            </small>
                         </div>
                         <div class="hidden js-sm-event-details">
                             <div class="form-group">
@@ -159,7 +173,11 @@
                             <div class="form-group hidden js-sm-event-timeout-group">
                                 <label class="workflow-inspector-label">{{ 'Timeout' | trans }}</label>
                                 <input type="text" class="form-control js-sm-event-timeout" data-qa="workflow-event-timeout"
-                                       placeholder="{{ '3 second' | trans }}">
+                                       aria-describedby="workflow-event-timeout-help" placeholder="1 hour">
+                                <div id="workflow-event-timeout-help" class="text-muted mt-1" data-qa="workflow-event-timeout-help">
+                                    {{ 'A number and an English time unit: second, minute, hour, day, week or month. Examples:' | trans }}
+                                    30 minutes, 2 hours, 14 days
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label class="workflow-inspector-label">{{ 'Command' | trans }}</label>
@@ -209,6 +227,7 @@
             'deleteEntities': 'Undone: selection deleted' | trans,
             'setTransitionEvent': 'Undone: transition event changed' | trans,
             'setTransitionEventName': 'Undone: event name changed' | trans,
+            'linkTransitionEvent': 'Undone: event linked to an existing event' | trans,
             'setTransitionCondition': 'Undone: transition condition changed' | trans,
             'setTransitionHappy': 'Undone: happy path changed' | trans,
             'updateEvent': 'Undone: event settings changed' | trans,

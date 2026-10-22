@@ -8,6 +8,7 @@
 namespace SprykerTest\Zed\Workflow\Communication\Form;
 
 use Codeception\Test\Unit;
+use Spryker\Zed\Workflow\Communication\Form\StateMachineDefinitionForm;
 use Spryker\Zed\Workflow\Communication\Form\VersionForm;
 use Symfony\Component\Form\Extension\Validator\ValidatorExtension;
 use Symfony\Component\Form\FormFactoryInterface;
@@ -15,10 +16,6 @@ use Symfony\Component\Form\Forms;
 use Symfony\Component\Validator\Validation;
 
 /**
- * Verifies that the Back Office version create form rejects empty required fields (Initial state and the
- * Definition XML). Uses a self-contained Symfony form factory with the validator extension so the NotBlank
- * constraints are exercised without the full Zed form application.
- *
  * Auto-generated group annotations
  *
  * @group SprykerTest
@@ -44,21 +41,29 @@ class VersionFormTest extends Unit
             ->getFormFactory();
     }
 
+    public function testVersionFormIsValidWhenTheStateMachineDefinitionIsProvided(): void
+    {
+        // Arrange
+        $form = $this->formFactory->create(VersionForm::class);
+
+        // Act
+        $form->submit($this->createVersionFormData('new', '<statemachine/>'));
+
+        // Assert
+        $this->assertTrue($form->isValid());
+    }
+
     public function testVersionFormIsInvalidWhenInitialStateIsEmpty(): void
     {
         // Arrange
         $form = $this->formFactory->create(VersionForm::class);
 
         // Act
-        $form->submit([
-            VersionForm::FIELD_ID_STATE_MACHINE_PROCESS => '1',
-            VersionForm::FIELD_INITIAL_STATE => '',
-            VersionForm::FIELD_DEFINITION => '<statemachine/>',
-        ]);
+        $form->submit($this->createVersionFormData('', '<statemachine/>'));
 
         // Assert
         $this->assertFalse($form->isValid());
-        $this->assertGreaterThan(0, $form->get(VersionForm::FIELD_INITIAL_STATE)->getErrors()->count());
+        $this->assertCount(1, $form->getErrors());
     }
 
     public function testVersionFormIsInvalidWhenDefinitionIsEmpty(): void
@@ -67,14 +72,24 @@ class VersionFormTest extends Unit
         $form = $this->formFactory->create(VersionForm::class);
 
         // Act
-        $form->submit([
-            VersionForm::FIELD_ID_STATE_MACHINE_PROCESS => '1',
-            VersionForm::FIELD_INITIAL_STATE => 'new',
-            VersionForm::FIELD_DEFINITION => '',
-        ]);
+        $form->submit($this->createVersionFormData('new', ''));
 
         // Assert
         $this->assertFalse($form->isValid());
-        $this->assertGreaterThan(0, $form->get(VersionForm::FIELD_DEFINITION)->getErrors()->count());
+        $this->assertCount(1, $form->getErrors());
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function createVersionFormData(string $initialState, string $definition): array
+    {
+        return [
+            VersionForm::FIELD_ID_STATE_MACHINE_PROCESS => '1',
+            VersionForm::FIELD_STATE_MACHINE_DEFINITION => [
+                StateMachineDefinitionForm::FIELD_INITIAL_STATE => $initialState,
+                StateMachineDefinitionForm::FIELD_DEFINITION => $definition,
+            ],
+        ];
     }
 }

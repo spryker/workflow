@@ -12,6 +12,7 @@ use Generated\Shared\Transfer\StateMachineProcessCriteriaTransfer;
 use Generated\Shared\Transfer\StateMachineTriggerEventCollectionTransfer;
 use Generated\Shared\Transfer\StateMachineTriggerEventCriteriaTransfer;
 use Generated\Shared\Transfer\StateMachineTriggerEventTransfer;
+use Spryker\Zed\Workflow\Dependency\Plugin\StateMachineProcessTriggerPluginInterface;
 use Spryker\Zed\Workflow\Persistence\WorkflowRepositoryInterface;
 
 class TriggerEventReader implements TriggerEventReaderInterface
@@ -31,45 +32,63 @@ class TriggerEventReader implements TriggerEventReaderInterface
     ): StateMachineTriggerEventCollectionTransfer {
         $stateMachineTriggerEventCollectionTransfer = new StateMachineTriggerEventCollectionTransfer();
 
-        $subjectTypes = $this->resolveSubjectTypesForStateMachineProcesses($stateMachineTriggerEventCriteriaTransfer);
-
-        foreach ($subjectTypes as $subjectType) {
-            $this->addTriggerEventsForSubjectType($subjectType, $stateMachineTriggerEventCollectionTransfer);
+        foreach ($this->getMatchingTriggerPlugins($stateMachineTriggerEventCriteriaTransfer) as $triggerPlugin) {
+            $stateMachineTriggerEventCollectionTransfer->addStateMachineTriggerEvent(
+                (new StateMachineTriggerEventTransfer())
+                    ->setEventName($triggerPlugin->getEventName())
+                    ->setName($this->getName($triggerPlugin))
+                    ->setDescription($triggerPlugin->getDescription())
+                    ->setSubjectType($triggerPlugin->getSubjectType()),
+            );
         }
 
         return $stateMachineTriggerEventCollectionTransfer;
     }
 
-    protected function addTriggerEventsForSubjectType(
-        string $subjectType,
-        StateMachineTriggerEventCollectionTransfer $stateMachineTriggerEventCollectionTransfer
-    ): void {
-        foreach ($this->getTriggerPluginsBySubjectType($subjectType) as $triggerPlugin) {
-            $stateMachineTriggerEventCollectionTransfer->addStateMachineTriggerEvent(
-                (new StateMachineTriggerEventTransfer())
-                    ->setEventName($triggerPlugin->getEventName())
-                    ->setName($triggerPlugin->getName())
-                    ->setDescription($triggerPlugin->getDescription())
-                    ->setSubjectType($subjectType),
-            );
+    protected function getName(StateMachineProcessTriggerPluginInterface $triggerPlugin): string
+    {
+        $name = $triggerPlugin->getName();
+
+        if ($name === '') {
+            return $triggerPlugin->getEventName();
         }
+
+        return $name;
     }
 
     /**
+     * @return array<\Spryker\Zed\Workflow\Dependency\Plugin\StateMachineProcessTriggerPluginInterface>
+     */
+    protected function getMatchingTriggerPlugins(StateMachineTriggerEventCriteriaTransfer $stateMachineTriggerEventCriteriaTransfer): array
+    {
+        $stateMachineTriggerEventConditionsTransfer = $stateMachineTriggerEventCriteriaTransfer->getStateMachineTriggerEventConditions();
+
+        if ($stateMachineTriggerEventConditionsTransfer === null) {
+            return $this->triggerPlugins;
+        }
+
+        $subjectTypes = $this->getSubjectTypesForStateMachineProcesses($stateMachineTriggerEventConditionsTransfer->getStateMachineProcessIds());
+
+        return array_values(array_filter(
+            $this->triggerPlugins,
+            static fn (StateMachineProcessTriggerPluginInterface $triggerPlugin): bool => in_array($triggerPlugin->getSubjectType(), $subjectTypes, true),
+        ));
+    }
+
+    /**
+     * @param array<int> $stateMachineProcessIds
+     *
      * @return array<string>
      */
-    protected function resolveSubjectTypesForStateMachineProcesses(
-        StateMachineTriggerEventCriteriaTransfer $stateMachineTriggerEventCriteriaTransfer
-    ): array {
-        $stateMachineTriggerEventConditionsTransfer = $stateMachineTriggerEventCriteriaTransfer->getStateMachineTriggerEventConditions();
-        if ($stateMachineTriggerEventConditionsTransfer === null || $stateMachineTriggerEventConditionsTransfer->getStateMachineProcessIds() === []) {
+    protected function getSubjectTypesForStateMachineProcesses(array $stateMachineProcessIds): array
+    {
+        if ($stateMachineProcessIds === []) {
             return [];
         }
 
         $stateMachineProcessCollectionTransfer = $this->repository->getStateMachineProcessCollection(
             (new StateMachineProcessCriteriaTransfer())->setStateMachineProcessConditions(
-                (new StateMachineProcessConditionsTransfer())
-                    ->setStateMachineProcessIds($stateMachineTriggerEventConditionsTransfer->getStateMachineProcessIds()),
+                (new StateMachineProcessConditionsTransfer())->setStateMachineProcessIds($stateMachineProcessIds),
             ),
         );
 
@@ -82,22 +101,5 @@ class TriggerEventReader implements TriggerEventReaderInterface
         }
 
         return array_values(array_unique($subjectTypes));
-    }
-
-    /**
-     * @return array<\Spryker\Zed\Workflow\Dependency\Plugin\StateMachineProcessTriggerPluginInterface>
-     */
-    protected function getTriggerPluginsBySubjectType(string $subjectType): array
-    {
-        $triggerPlugins = [];
-        foreach ($this->triggerPlugins as $triggerPlugin) {
-            if ($triggerPlugin->getSubjectType() !== $subjectType) {
-                continue;
-            }
-
-            $triggerPlugins[] = $triggerPlugin;
-        }
-
-        return $triggerPlugins;
     }
 }

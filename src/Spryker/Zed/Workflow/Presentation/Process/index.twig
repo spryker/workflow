@@ -11,15 +11,13 @@
 {% endblock %}
 
 {% block content %}
-    {% include '@Workflow/_partial/workflow-setup-info.twig' %}
-    
     {% embed '@Gui/Partials/widget.twig' with { widget_title: widget_title } %}
+        {% block widget_title_wrapper %}{% endblock %}
         {% block widget_content %}
             {{ processTable | raw }}
         {% endblock %}
     {% endembed %}
 
-    {% include '@Workflow/_partial/action-confirmation-modal.twig' %}
 {% endblock %}
 
 {% block footer_js %}

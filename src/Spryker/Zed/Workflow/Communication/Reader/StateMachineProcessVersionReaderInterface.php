@@ -12,4 +12,11 @@ use Generated\Shared\Transfer\StateMachineProcessDefinitionTransfer;
 interface StateMachineProcessVersionReaderInterface
 {
     public function findStateMachineProcessDefinition(int $idStateMachineProcessDefinition): ?StateMachineProcessDefinitionTransfer;
+
+    public function findStateMachineProcessDefinitionOfProcess(
+        int $idStateMachineProcessDefinition,
+        int $idStateMachineProcess
+    ): ?StateMachineProcessDefinitionTransfer;
+
+    public function findActiveStateMachineProcessDefinition(int $idStateMachineProcess): ?StateMachineProcessDefinitionTransfer;
 }

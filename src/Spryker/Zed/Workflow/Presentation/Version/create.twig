@@ -1,40 +1,35 @@
 {% extends '@Gui/Layout/layout.twig' %}
 
-{% set widget_title = 'Workflow Versions' | trans %}
+{% block head_css %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ assetsPath('css/spryker-zed-workflow-main.css') }}">
+{% endblock %}
+
+{% set widget_title = 'Workflows' | trans %}
 {% block section_title %}
     {{ widget_title }}
     {% include '@Workflow/_partial/status-badge.twig' %}
 {% endblock %}
 
 {% block action %}
-    <a class="btn btn-outline"
-       href="{{ url('/workflow/trigger', {'id-process': idStateMachineProcess}) }}"
-       data-qa="workflow-version-triggers">
-        <span class="material-symbols-outlined">account_tree</span> {{ 'Triggers' | trans }}
+    <a class="btn btn-sm btn-back"
+       href="{{ backLink.url }}"
+       data-qa="workflow-version-create-back"
+       data-confirm="1"
+       data-confirm-title="{{ 'Leave this page?' | trans }}"
+       data-confirm-message="{{ 'Are you sure? Unsaved changes will be lost.' | trans }}"
+       data-confirm-button="{{ 'Leave' | trans }}">
+        <span class="material-symbols-outlined">chevron_left</span> {{ backLink.label | trans }}
     </a>
-    <a class="btn btn-back" href="{{ backUrl }}">
-        <span class="material-symbols-outlined">chevron_left</span> {{ backLabel | trans }}
-    </a>
-{% endblock %}
-
-{% block head_css %}
-    {{ parent() }}
-    <link rel="stylesheet" href="{{ assetsPath('css/spryker-zed-workflow-main.css') }}">
 {% endblock %}
 
 {% block content %}
     {% embed '@Gui/Partials/widget.twig' with { widget_title: 'Create Version' | trans } %}
+        {% block widget_title_wrapper %}{% endblock %}
         {% block widget_content %}
-            {% if processName %}
-                <div class="workflow-parent-context m-b-md">
-                    <span class="text-muted">
-                        <span class="material-symbols-outlined align-middle">flowchart</span> {{ 'Workflow' | trans }}
-                    </span>
-                    <span class="label label-info m-l-xs">{{ processName }}</span>
-                </div>
-            {% endif %}
+            {% include '@Workflow/_partial/workflow-information.twig' %}
 
-            <div class="js-definition-validation-result" data-qa="workflow-definition-validation-result"></div>
+            {% include '@Workflow/_partial/definition-validation-result.twig' %}
 
             {# The subject-type-scoped command and condition names are inlined here so the visual builder
                can populate its dropdowns without an extra request. JSON_HEX_TAG keeps a plugin name
@@ -44,14 +39,16 @@
             </script>
 
             {{ form_start(versionForm, {'attr': {'class': 'js-version-form', 'data-qa': 'workflow-version-form'}}) }}
+                {{ form_errors(versionForm) }}
                 {{ form_row(versionForm.idStateMachineProcess) }}
+                {{ form_widget(versionForm.stateMachineDefinition) }}
 
-                {# The raw definition and initial-state fields are driven by the visual builder and kept
-                   hidden. The Advanced panel inside the builder exposes the raw XML as an escape hatch. #}
-                <div class="hidden js-version-fields">
-                    {{ form_row(versionForm.initialState) }}
-                    {{ form_row(versionForm.definition) }}
-                </div>
+                <h5>
+                    {{ 'New version' | trans }}
+                    {% if sourceVersion %}
+                        <small class="text-body-secondary fw-normal" data-qa="workflow-version-source">- {{ 'based on version %version%' | trans({'%version%': sourceVersion}) }}</small>
+                    {% endif %}
+                </h5>
 
                 {% include '@Workflow/_partial/state-machine-builder.twig' with {
                     readOnly: false,
@@ -59,16 +56,15 @@
                 } only %}
 
                 <div class="m-t-md">
-                    <button type="submit" class="btn btn-primary js-sm-save" data-qa="workflow-version-save">{{ 'Save' | trans }}</button>
+                    <button type="submit" class="btn btn-primary js-sm-save" data-qa="workflow-version-save">{{ 'Save as new version' | trans }}</button>
                     <button type="button"
                             class="btn btn-secondary js-validate-definition-button"
                             data-qa="workflow-validate-definition"
-                            data-validate-url="{{ url('/workflow/version/validate-definition') }}"
+                            data-validate-url="{{ url('/workflow/version-definition/validate') }}"
                             data-message-validating="{{ 'Validating…' | trans }}"
                             data-message-valid="{{ 'The definition is valid.' | trans }}"
-                            data-message-failed="{{ 'Validation request failed. Please try again.' | trans }}"
-                            data-message-heading="{{ 'The definition has the following errors:' | trans }}">
-                        {{ 'Validate definition' | trans }}
+                            data-message-failed="{{ 'Validation request failed. Please try again.' | trans }}">
+                        {{ 'Validate' | trans }}
                     </button>
                 </div>
             {{ form_end(versionForm) }}

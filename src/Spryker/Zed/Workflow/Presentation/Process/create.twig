@@ -1,5 +1,10 @@
 {% extends '@Gui/Layout/layout.twig' %}
 
+{% block head_css %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ assetsPath('css/spryker-zed-workflow-main.css') }}">
+{% endblock %}
+
 {% set widget_title = 'Workflows' | trans %}
 {% block section_title %}
     {{ widget_title }}
@@ -7,20 +12,73 @@
 {% endblock %}
 
 {% block action %}
-    <a class="btn btn-back" href="{{ url('/workflow/process') }}">
+    <a class="btn btn-sm btn-back" href="{{ url('/workflow/process') }}">
         <span class="material-symbols-outlined">chevron_left</span> {{ 'Back to workflows' | trans }}
     </a>
 {% endblock %}
 
 {% block content %}
-    {% embed '@Gui/Partials/widget.twig' with { widget_title: 'Create Workflow' | trans } %}
-        {% block widget_content %}
-            {{ form_start(processForm, {'attr': {'data-qa': 'workflow-process-form'}}) }}
-                {{ form_row(processForm.name) }}
-                {{ form_row(processForm.subjectType) }}
-                {{ form_row(processForm.description) }}
-                <button type="submit" class="btn btn-primary" data-qa="workflow-process-save">{{ 'Save' | trans }}</button>
-            {{ form_end(processForm) }}
-        {% endblock %}
-    {% endembed %}
+    {{ form_start(processForm, {'attr': {'class': 'js-workflow-process-form', 'data-qa': 'workflow-process-form'}}) }}
+        {{ form_errors(processForm) }}
+
+        {% embed '@Gui/Partials/widget.twig' %}
+            {% block widget_title_wrapper %}{% endblock %}
+
+            {% block widget_content %}
+                {% include '@Workflow/_partial/workflow-information.twig' %}
+
+                <div id="workflow-details" class="js-workflow-details" data-qa="workflow-details">
+                    <div id="workflow-details-fields" class="collapse show">
+                        {{ form_row(processForm.name) }}
+                        {{ form_row(processForm.description) }}
+                        {{ form_row(processForm.subjectType) }}
+                        {{ form_row(processForm.triggers) }}
+                    </div>
+
+                    <div class="text-center">
+                        <button type="button"
+                                class="btn btn-sm btn-back workflow-details-toggle"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#workflow-details-fields"
+                                aria-expanded="true"
+                                aria-controls="workflow-details-fields"
+                                aria-label="{{ 'Collapse' | trans }}"
+                                title="{{ 'Collapse' | trans }}"
+                                data-qa="workflow-details-toggle">
+                            <span class="material-symbols-outlined" aria-hidden="true">expand_less</span>
+                        </button>
+                    </div>
+                </div>
+            {% endblock %}
+        {% endembed %}
+
+        {% embed '@Gui/Partials/widget.twig' with { widget_title: 'Version %version%' | trans({'%version%': 1}) } %}
+            {% block widget_content %}
+                {% include '@Workflow/_partial/definition-validation-result.twig' %}
+
+                {# The command and condition names of every subject type are inlined so the visual builder can
+                   switch its dropdowns when the subject type changes without an extra request. JSON_HEX_TAG keeps
+                   a plugin name containing "</script>" from closing this block early. #}
+                <script type="application/json" data-qa="workflow-available-plugins-by-subject-type" class="js-workflow-available-plugins-by-subject-type">
+                    {{ availablePluginsIndexedBySubjectType | json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP')) | raw }}
+                </script>
+
+                {{ form_widget(processForm.stateMachineDefinition) }}
+
+                {% include '@Workflow/_partial/state-machine-builder.twig' with {
+                    readOnly: false,
+                    canvasRenderer: canvasRenderer|default(null),
+                } only %}
+
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary js-sm-save" data-qa="workflow-process-save">{{ 'Create workflow' | trans }}</button>
+                </div>
+            {% endblock %}
+        {% endembed %}
+    {{ form_end(processForm) }}
+{% endblock %}
+
+{% block footer_js %}
+    {{ parent() }}
+    <script src="{{ assetsPath('js/spryker-zed-workflow-main.js') }}"></script>
 {% endblock %}

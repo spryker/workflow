@@ -44,6 +44,8 @@ class TriggerEventCollectionTest extends Unit
      */
     public const EVENT_DESCRIPTION = 'Fired when a new customer is created.';
 
+    protected const string OTHER_SUBJECT_TYPE = 'other_subject_type';
+
     protected WorkflowBusinessTester $tester;
 
     public function testGetStateMachineTriggerEventCollectionExposesPluginEventWithFriendlyName(): void
@@ -111,6 +113,43 @@ class TriggerEventCollectionTest extends Unit
         $this->assertCount(0, $stateMachineTriggerEventCollectionTransfer->getStateMachineTriggerEvents());
     }
 
+    public function testGetStateMachineTriggerEventCollectionReturnsEventsOfEverySubjectTypeWithoutConditions(): void
+    {
+        // Arrange
+        $this->tester->setDependency(
+            WorkflowDependencyProvider::PLUGINS_TRIGGER,
+            [$this->createTriggerPlugin(), $this->createTriggerPlugin(static::OTHER_SUBJECT_TYPE)],
+        );
+
+        // Act
+        $stateMachineTriggerEventCollectionTransfer = $this->tester->getFacade()->getStateMachineTriggerEventCollection(
+            new StateMachineTriggerEventCriteriaTransfer(),
+        );
+
+        // Assert
+        $subjectTypes = [];
+        foreach ($stateMachineTriggerEventCollectionTransfer->getStateMachineTriggerEvents() as $stateMachineTriggerEventTransfer) {
+            $subjectTypes[] = $stateMachineTriggerEventTransfer->getSubjectType();
+        }
+
+        $this->assertSame([WorkflowHelper::SUBJECT_TYPE, static::OTHER_SUBJECT_TYPE], $subjectTypes);
+    }
+
+    public function testGetStateMachineTriggerEventCollectionUsesTheEventNameWhenThePluginNameIsEmpty(): void
+    {
+        // Arrange
+        $this->tester->setDependency(WorkflowDependencyProvider::PLUGINS_TRIGGER, [$this->createTriggerPlugin(WorkflowHelper::SUBJECT_TYPE, '')]);
+
+        // Act
+        $stateMachineTriggerEventCollectionTransfer = $this->tester->getFacade()->getStateMachineTriggerEventCollection(
+            new StateMachineTriggerEventCriteriaTransfer(),
+        );
+
+        // Assert
+        $stateMachineTriggerEventTransfer = $stateMachineTriggerEventCollectionTransfer->getStateMachineTriggerEvents()->getIterator()->current();
+        $this->assertSame(static::EVENT_NAME, $stateMachineTriggerEventTransfer->getName());
+    }
+
     protected function createProcessWithoutSubjectType(): StateMachineProcessTransfer
     {
         $name = uniqid('process_', true);
@@ -125,10 +164,12 @@ class TriggerEventCollectionTest extends Unit
         )->getStateMachineProcesses()->getIterator()->current();
     }
 
-    protected function createTriggerPlugin(string $subjectType = WorkflowHelper::SUBJECT_TYPE): StateMachineProcessTriggerPluginInterface
-    {
-        return new class ($subjectType) implements StateMachineProcessTriggerPluginInterface {
-            public function __construct(protected string $subjectType)
+    protected function createTriggerPlugin(
+        string $subjectType = WorkflowHelper::SUBJECT_TYPE,
+        string $name = self::EVENT_LABEL
+    ): StateMachineProcessTriggerPluginInterface {
+        return new class ($subjectType, $name) implements StateMachineProcessTriggerPluginInterface {
+            public function __construct(protected string $subjectType, protected string $name)
             {
             }
 
@@ -139,7 +180,7 @@ class TriggerEventCollectionTest extends Unit
 
             public function getName(): string
             {
-                return TriggerEventCollectionTest::EVENT_LABEL;
+                return $this->name;
             }
 
             public function getSubjectType(): string

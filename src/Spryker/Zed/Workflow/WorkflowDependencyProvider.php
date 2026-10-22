@@ -10,7 +10,6 @@ namespace Spryker\Zed\Workflow;
 use Orm\Zed\StateMachine\Persistence\SpyStateMachineProcessQuery;
 use Orm\Zed\Workflow\Persistence\SpyStateMachineProcessDefinitionInstanceQuery;
 use Orm\Zed\Workflow\Persistence\SpyStateMachineProcessDefinitionQuery;
-use Orm\Zed\Workflow\Persistence\SpyStateMachineProcessDefinitionTriggerQuery;
 use Spryker\Zed\Kernel\AbstractBundleDependencyProvider;
 use Spryker\Zed\Kernel\Container;
 
@@ -23,6 +22,8 @@ class WorkflowDependencyProvider extends AbstractBundleDependencyProvider
      * @var string
      */
     public const FACADE_STATE_MACHINE = 'FACADE_STATE_MACHINE';
+
+    public const string FACADE_USER = 'FACADE_USER';
 
     /**
      * @var string
@@ -54,11 +55,6 @@ class WorkflowDependencyProvider extends AbstractBundleDependencyProvider
      */
     public const PROPEL_QUERY_STATE_MACHINE_PROCESS_DEFINITION_INSTANCE = 'PROPEL_QUERY_STATE_MACHINE_PROCESS_DEFINITION_INSTANCE';
 
-    /**
-     * @var string
-     */
-    public const PROPEL_QUERY_STATE_MACHINE_PROCESS_DEFINITION_TRIGGER = 'PROPEL_QUERY_STATE_MACHINE_PROCESS_DEFINITION_TRIGGER';
-
     public function provideBusinessLayerDependencies(Container $container): Container
     {
         $container = parent::provideBusinessLayerDependencies($container);
@@ -76,10 +72,10 @@ class WorkflowDependencyProvider extends AbstractBundleDependencyProvider
         $container = parent::provideCommunicationLayerDependencies($container);
 
         $container = $this->addStateMachineFacade($container);
+        $container = $this->addUserFacade($container);
         $container = $this->addStateMachineProcessPropelQuery($container);
         $container = $this->addStateMachineProcessDefinitionPropelQuery($container);
         $container = $this->addStateMachineProcessDefinitionInstancePropelQuery($container);
-        $container = $this->addStateMachineProcessDefinitionTriggerPropelQuery($container);
 
         return $container;
     }
@@ -88,6 +84,15 @@ class WorkflowDependencyProvider extends AbstractBundleDependencyProvider
     {
         $container->set(static::FACADE_STATE_MACHINE, static function (Container $container) {
             return $container->getLocator()->stateMachine()->facade();
+        });
+
+        return $container;
+    }
+
+    protected function addUserFacade(Container $container): Container
+    {
+        $container->set(static::FACADE_USER, static function (Container $container) {
+            return $container->getLocator()->user()->facade();
         });
 
         return $container;
@@ -142,15 +147,6 @@ class WorkflowDependencyProvider extends AbstractBundleDependencyProvider
     {
         $container->set(static::PROPEL_QUERY_STATE_MACHINE_PROCESS_DEFINITION_INSTANCE, $container->factory(function (): SpyStateMachineProcessDefinitionInstanceQuery {
             return SpyStateMachineProcessDefinitionInstanceQuery::create();
-        }));
-
-        return $container;
-    }
-
-    protected function addStateMachineProcessDefinitionTriggerPropelQuery(Container $container): Container
-    {
-        $container->set(static::PROPEL_QUERY_STATE_MACHINE_PROCESS_DEFINITION_TRIGGER, $container->factory(function (): SpyStateMachineProcessDefinitionTriggerQuery {
-            return SpyStateMachineProcessDefinitionTriggerQuery::create();
         }));
 
         return $container;

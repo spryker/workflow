@@ -235,20 +235,18 @@ class WorkflowWriterStep implements DataImportStepInterface
     protected function syncTriggers(int $idStateMachineProcess, string $triggerEvents): void
     {
         $eventNames = $this->parseTriggerEvents($triggerEvents);
-        $persistedEventNames = $this->getPersistedTriggerEventNames($idStateMachineProcess);
+        $persistedStateMachineDefinitionTriggerTransfersIndexedByEventName = $this->getPersistedStateMachineDefinitionTriggersIndexedByEventName($idStateMachineProcess);
 
         $stateMachineDefinitionTriggerCollectionRequestTransfer = new StateMachineDefinitionTriggerCollectionRequestTransfer();
 
-        foreach (array_diff($eventNames, $persistedEventNames) as $eventName) {
+        foreach (array_diff($eventNames, array_keys($persistedStateMachineDefinitionTriggerTransfersIndexedByEventName)) as $eventName) {
             $stateMachineDefinitionTriggerCollectionRequestTransfer->addStateMachineDefinitionTriggerToAdd(
                 $this->createTriggerTransfer($idStateMachineProcess, $eventName),
             );
         }
 
-        foreach (array_diff($persistedEventNames, $eventNames) as $eventName) {
-            $stateMachineDefinitionTriggerCollectionRequestTransfer->addStateMachineDefinitionTriggerToRemove(
-                $this->createTriggerTransfer($idStateMachineProcess, $eventName),
-            );
+        foreach (array_diff_key($persistedStateMachineDefinitionTriggerTransfersIndexedByEventName, array_flip($eventNames)) as $stateMachineDefinitionTriggerTransfer) {
+            $stateMachineDefinitionTriggerCollectionRequestTransfer->addStateMachineDefinitionTriggerToRemove($stateMachineDefinitionTriggerTransfer);
         }
 
         if (
@@ -275,9 +273,9 @@ class WorkflowWriterStep implements DataImportStepInterface
     }
 
     /**
-     * @return array<string>
+     * @return array<string, \Generated\Shared\Transfer\StateMachineDefinitionTriggerTransfer>
      */
-    protected function getPersistedTriggerEventNames(int $idStateMachineProcess): array
+    protected function getPersistedStateMachineDefinitionTriggersIndexedByEventName(int $idStateMachineProcess): array
     {
         $stateMachineDefinitionTriggerCollectionTransfer = $this->workflowRepository->getStateMachineDefinitionTriggerCollection(
             (new StateMachineDefinitionTriggerCriteriaTransfer())
@@ -286,12 +284,12 @@ class WorkflowWriterStep implements DataImportStepInterface
                 ),
         );
 
-        $eventNames = [];
+        $stateMachineDefinitionTriggerTransfersIndexedByEventName = [];
         foreach ($stateMachineDefinitionTriggerCollectionTransfer->getStateMachineDefinitionTriggers() as $stateMachineDefinitionTriggerTransfer) {
-            $eventNames[] = $stateMachineDefinitionTriggerTransfer->getEventNameOrFail();
+            $stateMachineDefinitionTriggerTransfersIndexedByEventName[$stateMachineDefinitionTriggerTransfer->getEventNameOrFail()] = $stateMachineDefinitionTriggerTransfer;
         }
 
-        return $eventNames;
+        return $stateMachineDefinitionTriggerTransfersIndexedByEventName;
     }
 
     /**

@@ -51,6 +51,11 @@ interface WorkflowFacadeInterface
      * Specification:
      * - Creates state machine processes.
      * - Persists the metadata (type, subject_type, status, description) on the core state machine process row.
+     * - Creates the triggers provided in `StateMachineProcessTransfer.stateMachineDefinitionTriggers` for the created process.
+     * - Validates the versions provided in `StateMachineProcessTransfer.stateMachineProcessDefinitions` against the process name and subject type before persisting anything; a process with an invalid version is not created and its validation errors are returned.
+     * - Creates the versions provided in `StateMachineProcessTransfer.stateMachineProcessDefinitions` for the created process, as `createStateMachineProcessDefinitionCollection()` does.
+     * - Creates no triggers or versions for a process that is not created.
+     * - Persists the processes, triggers and versions in one transaction.
      *
      * @api
      *
@@ -65,6 +70,10 @@ interface WorkflowFacadeInterface
     /**
      * Specification:
      * - Updates the editable metadata (status, description) of each process in the request.
+     * - Leaves a metadata field unchanged when it is not set; an empty description clears it.
+     * - Persists the triggers in `StateMachineProcessCollectionRequestTransfer.stateMachineDefinitionTriggersToAdd`.
+     * - Deletes the triggers in `StateMachineProcessCollectionRequestTransfer.stateMachineDefinitionTriggersToRemove` by `StateMachineDefinitionTriggerTransfer.idStateMachineProcessDefinitionTrigger`.
+     * - Leaves the triggers unchanged when a process of the request does not exist.
      * - Setting status to inactive blocks new event/manual starts and excludes the process from
      *   condition/timeout discovery; running instances finish on their pinned version.
      * - Supports transactional manipulation (defaulted to true); on failure returns the offending
@@ -114,8 +123,8 @@ interface WorkflowFacadeInterface
 
     /**
      * Specification:
-     * - Validates a single definition (raw XML + initial state + owning process id); subject type and
-     *   process name are resolved from the process id.
+     * - Validates a single definition (raw XML + initial state + owning process); subject type and
+     *   process name are resolved from the process id, or taken from the process transfer when it has no id.
      * - Reports invalid XML, unknown command/condition refs, missing/invalid initial state, unreachable
      *   states, undefined target states, duplicate state/event names and process-name mismatches.
      * - Does NOT persist anything. Used both for the pre-save AJAX "validate" action and as the hard
@@ -194,10 +203,12 @@ interface WorkflowFacadeInterface
 
     /**
      * Specification:
-     * - Returns the trigger events registered for the subject type of the matched process(es).
-     * - Resolves the subject type per process id in the conditions, or filters directly by subject types,
-     *   trigger events are collected from the registered StateMachineProcessTriggerPlugin stack and filtered by subject type.
-     * - Returns an empty collection when no process matches or no trigger plugins match the subject type.
+     * - Returns the trigger events registered for the subject types resolved from the criteria conditions.
+     * - Resolves the subject type of each process in `StateMachineTriggerEventConditions.stateMachineProcessIds`.
+     * - Returns the trigger events of every registered subject type when no conditions are provided.
+     * - Trigger events are collected from the registered StateMachineProcessTriggerPlugin stack.
+     * - Uses the event name as `StateMachineTriggerEvent.name` when the plugin provides an empty name.
+     * - Returns an empty collection when the conditions resolve no subject type or no trigger plugin matches it.
      *
      * @api
      *

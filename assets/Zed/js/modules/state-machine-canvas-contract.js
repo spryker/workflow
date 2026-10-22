@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * Contract for canvas renderers.
  *
@@ -21,15 +19,15 @@
  * keyword, so throwing stubs are the enforcement idiom).
  */
 
-const CANVAS_RENDERER_METHODS = ['render', 'zoomIn', 'zoomOut', 'zoomToFit', 'destroy'];
+export const CANVAS_RENDERER_METHODS = ['render', 'zoomIn', 'zoomOut', 'zoomToFit', 'destroy'];
 
 /**
  * Methods a renderer MAY implement for a better editing experience. A renderer without them still
  * works: the builder checks for each and falls back to the behaviour documented on the method.
  */
-const CANVAS_RENDERER_OPTIONAL_METHODS = ['renderSelection', 'revealState'];
+export const CANVAS_RENDERER_OPTIONAL_METHODS = ['renderSelection', 'revealState', 'resetZoom'];
 
-class AbstractStateMachineCanvas {
+export class AbstractStateMachineCanvas {
     /**
      * @param {HTMLElement} container the shared builder container; renderers MUST mount into their
      *   own inner element and remove it in destroy(), never the container itself
@@ -60,16 +58,19 @@ class AbstractStateMachineCanvas {
      * @param {Object} positionByStateId shared view-state map of state id to {x, y}; read it for
      *   placement, write back when the user drags a state (in place — the builder shares this very
      *   object, so a moved state needs no callback); kept across renderer switches
-     * @param {{readOnly: boolean, labels: Object}} options `readOnly` renders an inspect-only
-     *   diagram: no editing affordances, no link drawing, states not draggable; selection, panning
-     *   and zooming stay. `labels` holds the translated words the renderer draws on the diagram
-     *   (see the label keys the Twig template inlines) — a renderer must never hardcode UI text.
+     * @param {{readOnly: boolean, currentStateName: string, edgeRouteByPair: Object}} options
+     *   `readOnly` renders an inspect-only diagram: no editing affordances, no link drawing, states
+     *   not draggable; selection, panning and zooming stay. `currentStateName` names the state a
+     *   workflow instance is in (empty outside the instance view), to be told apart on the diagram.
+     *   `edgeRouteByPair` holds the routes the layout computed for its edges, keyed by
+     *   `edgeRouteKey()` (state-machine-edge-geometry.js) — refilled in place by each directed-graph
+     *   layout, so a renderer may follow them for as long as both states stand where it put them.
      */
     constructor(container, callbacks, positionByStateId, options) {
         this.container = container;
         this.callbacks = callbacks;
         this.positionByStateId = positionByStateId;
-        this.options = options || { readOnly: false, labels: {} };
+        this.options = options || { readOnly: false, currentStateName: '', edgeRouteByPair: {} };
     }
 
     /**
@@ -144,6 +145,15 @@ class AbstractStateMachineCanvas {
         // Nothing to do: a renderer without a viewport of its own always shows every state.
     }
 
+    /**
+     * OPTIONAL. Returns the canvas to 100% zoom with the diagram origin in the top-left corner, so
+     * states are drawn at their readable size however large the workflow is. The default falls back
+     * to `zoomToFit()`.
+     */
+    resetZoom() {
+        this.zoomToFit();
+    }
+
     throwNotImplemented(methodName) {
         throw new Error(
             `Canvas renderer "${this.constructor.name}" does not implement "${methodName}()". ` +
@@ -152,5 +162,3 @@ class AbstractStateMachineCanvas {
         );
     }
 }
-
-module.exports = { AbstractStateMachineCanvas, CANVAS_RENDERER_METHODS, CANVAS_RENDERER_OPTIONAL_METHODS };

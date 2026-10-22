@@ -138,24 +138,11 @@ $workflow-header-band: 44px;
     }
 }
 
-// The page action buttons mix text-only and icon+text labels, and the theme sizes them by their
-// content, so an icon makes a button taller than its neighbour. One height for the whole row.
-.title-action .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    height: 36px;
-
-    .material-symbols-outlined {
-        font-size: 18px;
-        line-height: 1;
-    }
+.info-tooltip {
+    font-size: 16px;
+    vertical-align: baseline;
 }
 
-// The Zed theme renders select.form-control as an auto-width inline-block, which would leave the
-// label sitting beside the control and let a long option push the select out of the sidebar. Every
-// field in the inspector reads the same way instead: label on its own line, control across the
-// full width.
 .workflow-inspector-label {
     font-size: 11px;
     font-weight: 600;
@@ -211,4 +198,37 @@ $workflow-header-band: 44px;
 .workflow-xml-editor {
     font-family: monospace;
     font-size: 12px;
+}
+
+.active-version {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.version-information {
+    flex-grow: 1;
+}
+
+.version-icon {
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+}
+
+.version-meta {
+    font-size: 12px;
+    color: $workflow-muted-text;
+}
+
+.workflow-details-toggle {
+    .material-symbols-outlined {
+        transition: transform 0.2s;
+    }
+
+    &.collapsed .material-symbols-outlined {
+        transform: rotate(180deg);
+    }
 }

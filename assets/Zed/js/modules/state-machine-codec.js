@@ -201,8 +201,6 @@ function readBooleanAttribute(element, name) {
  * (condition-only) transition. Resolving names to shared event entities is the model's job.
  *
  * @param {string} xml
- *
- * @returns {Object} model, or an empty model when the XML is missing/unparseable
  */
 function deserialize(xml) {
     const emptyModel = { process: { name: '', main: true }, states: [], transitions: [], events: [] };

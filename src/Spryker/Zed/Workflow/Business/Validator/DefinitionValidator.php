@@ -7,11 +7,13 @@
 
 namespace Spryker\Zed\Workflow\Business\Validator;
 
+use ArrayObject;
 use Generated\Shared\Transfer\StateMachineDefinitionValidationErrorTransfer;
 use Generated\Shared\Transfer\StateMachineDefinitionValidationResponseTransfer;
 use Generated\Shared\Transfer\StateMachineProcessConditionsTransfer;
 use Generated\Shared\Transfer\StateMachineProcessCriteriaTransfer;
 use Generated\Shared\Transfer\StateMachineProcessDefinitionTransfer;
+use Generated\Shared\Transfer\StateMachineProcessTransfer;
 use SimpleXMLElement;
 use Spryker\Zed\Workflow\Business\Validator\Rule\DefinitionValidationContext;
 use Spryker\Zed\Workflow\Persistence\WorkflowRepositoryInterface;
@@ -29,6 +31,10 @@ class DefinitionValidator implements DefinitionValidatorInterface
      */
     protected const VALIDATION_ERROR_TYPE_EMPTY_DEFINITION = 'empty_definition';
 
+    protected const string VALIDATION_ERROR_TYPE_PROCESS_NOT_FOUND = 'process_not_found';
+
+    protected const string MESSAGE_PROCESS_NOT_FOUND = 'The process with the ID "%d" does not exist.';
+
     /**
      * @param array<\Spryker\Zed\Workflow\Business\Validator\Rule\DefinitionValidationRuleInterface> $definitionValidationRules
      */
@@ -42,6 +48,15 @@ class DefinitionValidator implements DefinitionValidatorInterface
         StateMachineProcessDefinitionTransfer $stateMachineProcessDefinitionTransfer
     ): StateMachineDefinitionValidationResponseTransfer {
         $stateMachineDefinitionValidationResponseTransfer = (new StateMachineDefinitionValidationResponseTransfer())->setIsValid(false);
+        $stateMachineProcessTransfer = $this->findStateMachineProcess($stateMachineProcessDefinitionTransfer->getStateMachineProcessOrFail());
+
+        if ($stateMachineProcessTransfer === null) {
+            return $stateMachineDefinitionValidationResponseTransfer->addError(
+                (new StateMachineDefinitionValidationErrorTransfer())
+                    ->setType(static::VALIDATION_ERROR_TYPE_PROCESS_NOT_FOUND)
+                    ->setMessage(sprintf(static::MESSAGE_PROCESS_NOT_FOUND, $stateMachineProcessDefinitionTransfer->getStateMachineProcessOrFail()->getIdStateMachineProcess())),
+            );
+        }
 
         $rootElement = $this->validateXmlStructure($stateMachineProcessDefinitionTransfer, $stateMachineDefinitionValidationResponseTransfer);
 
@@ -49,7 +64,7 @@ class DefinitionValidator implements DefinitionValidatorInterface
             return $stateMachineDefinitionValidationResponseTransfer;
         }
 
-        $definitionValidationContext = $this->createContext($stateMachineProcessDefinitionTransfer, $rootElement);
+        $definitionValidationContext = $this->createContext($stateMachineProcessDefinitionTransfer, $stateMachineProcessTransfer, $rootElement);
 
         foreach ($this->definitionValidationRules as $definitionValidationRule) {
             $definitionValidationRule->validate($definitionValidationContext, $stateMachineDefinitionValidationResponseTransfer);
@@ -58,6 +73,22 @@ class DefinitionValidator implements DefinitionValidatorInterface
         $stateMachineDefinitionValidationResponseTransfer->setIsValid($stateMachineDefinitionValidationResponseTransfer->getErrors()->count() === 0);
 
         return $stateMachineDefinitionValidationResponseTransfer;
+    }
+
+    /**
+     * @param \ArrayObject<int, \Generated\Shared\Transfer\StateMachineProcessDefinitionTransfer> $stateMachineProcessDefinitionTransfers
+     */
+    public function validateCollection(ArrayObject $stateMachineProcessDefinitionTransfers): StateMachineDefinitionValidationResponseTransfer
+    {
+        $stateMachineDefinitionValidationResponseTransfer = new StateMachineDefinitionValidationResponseTransfer();
+
+        foreach ($stateMachineProcessDefinitionTransfers as $stateMachineProcessDefinitionTransfer) {
+            foreach ($this->validate($stateMachineProcessDefinitionTransfer)->getErrors() as $stateMachineDefinitionValidationErrorTransfer) {
+                $stateMachineDefinitionValidationResponseTransfer->addError($stateMachineDefinitionValidationErrorTransfer);
+            }
+        }
+
+        return $stateMachineDefinitionValidationResponseTransfer->setIsValid($stateMachineDefinitionValidationResponseTransfer->getErrors()->count() === 0);
     }
 
     protected function validateXmlStructure(
@@ -91,23 +122,29 @@ class DefinitionValidator implements DefinitionValidatorInterface
 
     protected function createContext(
         StateMachineProcessDefinitionTransfer $stateMachineProcessDefinitionTransfer,
+        StateMachineProcessTransfer $stateMachineProcessTransfer,
         SimpleXMLElement $rootElement
     ): DefinitionValidationContext {
-        $stateMachineProcessCollectionTransfer = $this->workflowRepository->getStateMachineProcessCollection(
-            (new StateMachineProcessCriteriaTransfer())->setStateMachineProcessConditions(
-                (new StateMachineProcessConditionsTransfer())->addIdStateMachineProcess(
-                    $stateMachineProcessDefinitionTransfer->getStateMachineProcessOrFail()->getIdStateMachineProcessOrFail(),
-                ),
-            ),
-        );
-
-        $stateMachineProcessTransfer = $stateMachineProcessCollectionTransfer->getStateMachineProcesses()->getIterator()->current() ?: null;
-
         return new DefinitionValidationContext(
             $stateMachineProcessDefinitionTransfer,
             $rootElement,
-            $stateMachineProcessTransfer?->getSubjectType(),
-            $stateMachineProcessTransfer?->getProcessName(),
+            $stateMachineProcessTransfer->getSubjectType(),
+            $stateMachineProcessTransfer->getProcessName(),
         );
+    }
+
+    protected function findStateMachineProcess(StateMachineProcessTransfer $stateMachineProcessTransfer): ?StateMachineProcessTransfer
+    {
+        $idStateMachineProcess = $stateMachineProcessTransfer->getIdStateMachineProcess();
+
+        if ($idStateMachineProcess === null) {
+            return $stateMachineProcessTransfer;
+        }
+
+        return $this->workflowRepository->getStateMachineProcessCollection(
+            (new StateMachineProcessCriteriaTransfer())->setStateMachineProcessConditions(
+                (new StateMachineProcessConditionsTransfer())->addIdStateMachineProcess($idStateMachineProcess),
+            ),
+        )->getStateMachineProcesses()->getIterator()->current();
     }
 }

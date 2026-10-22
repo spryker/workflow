@@ -1,14 +1,14 @@
 {% extends '@Gui/Layout/layout.twig' %}
 
-{% set widget_title = 'Workflow instance ' ~ identifier %}
+{% set widget_title = 'Workflows' | trans %}
 {% block section_title %}
     {{ widget_title }}
     {% include '@Workflow/_partial/status-badge.twig' %}
 {% endblock %}
 
 {% block action %}
-    <a class="btn btn-back" href="{{ url('/workflow/instance', {'id-definition': idStateMachineProcessDefinition}) }}">
-        <span class="material-symbols-outlined">chevron_left</span> {{ 'Back to workflow instances' | trans }}
+    <a class="btn btn-back" href="{{ url('/workflow/version/view', {'id-definition': idBackStateMachineProcessDefinition}) }}" data-qa="workflow-instance-back">
+        <span class="material-symbols-outlined">chevron_left</span> {{ 'Back to workflow' | trans }}
     </a>
 {% endblock %}
 
@@ -30,7 +30,7 @@
                 <span class="text-muted m-l-sm">{{ 'Subject Identifier' | trans }}</span>
                 <span class="label label-default m-l-xs">{{ identifier }}</span>
                 <span class="text-muted m-l-sm">{{ 'Current State' | trans }}</span>
-                <span class="label label-primary m-l-xs">{{ currentState | default('-') }}</span>
+                <span class="label label-primary m-l-xs" data-qa="workflow-instance-current-state">{{ currentState | default('-') }}</span>
             </div>
             {% include '@Workflow/_partial/state-machine-builder.twig' with {
                 readOnly: true,
@@ -48,12 +48,13 @@
                 <p>{{ 'No manual events are available from the current state.' | trans }}</p>
             {% else %}
                 <p>{{ 'Trigger a manual event to move this instance to the next state.' | trans }}</p>
-                {% for eventName in manualEvents %}
-                    <a class="btn btn-create"
-                       href="{{ url('/workflow/instance/trigger', {'id-definition': idStateMachineProcessDefinition, 'identifier': identifier, 'event': eventName}) }}">
-                        <span class="material-symbols-outlined">play_arrow</span> {{ eventName }}
-                    </a>
-                {% endfor %}
+                {{ form_start(manualEventTriggerForm, {'attr': {'class': 'd-inline-block'}}) }}
+                    {% for eventName in manualEvents %}
+                        <button type="submit" name="event" value="{{ eventName }}" class="btn btn-create" data-qa="workflow-instance-manual-action">
+                            <span class="material-symbols-outlined">play_arrow</span> {{ eventName }}
+                        </button>
+                    {% endfor %}
+                {{ form_end(manualEventTriggerForm) }}
             {% endif %}
         {% endblock %}
     {% endembed %}

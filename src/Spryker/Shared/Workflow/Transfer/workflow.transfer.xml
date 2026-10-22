@@ -8,6 +8,9 @@
         <property name="subjectType" type="string"/>
         <property name="status" type="string"/>
         <property name="description" type="string"/>
+        <property name="stateMachineDefinitionTriggers" type="StateMachineDefinitionTrigger[]" singular="stateMachineDefinitionTrigger"/>
+        <property name="stateMachineProcessDefinitions" type="StateMachineProcessDefinition[]" singular="stateMachineProcessDefinition"/>
+        <property name="version" type="int"/>
     </transfer>
 
     <transfer name="StateMachineItem">
@@ -20,6 +23,7 @@
         <property name="eventName" type="string"/>
         <property name="createdAt" type="string"/>
         <property name="stateMachineProcessDefinitionInstance" type="StateMachineProcessDefinitionInstance"/>
+        <property name="version" type="int"/>
     </transfer>
 
     <transfer name="StateMachineProcessDefinition" strict="true">
@@ -197,6 +201,8 @@
 
     <transfer name="StateMachineProcessCollectionRequest" strict="true">
         <property name="stateMachineProcesses" type="StateMachineProcess[]" singular="stateMachineProcess"/>
+        <property name="stateMachineDefinitionTriggersToAdd" type="StateMachineDefinitionTrigger[]" singular="stateMachineDefinitionTriggerToAdd"/>
+        <property name="stateMachineDefinitionTriggersToRemove" type="StateMachineDefinitionTrigger[]" singular="stateMachineDefinitionTriggerToRemove"/>
         <property name="isTransactional" type="bool"/>
     </transfer>
 
@@ -235,6 +241,20 @@
     <transfer name="User">
         <property name="idUser" type="int"/>
         <property name="username" type="string"/>
+        <property name="firstName" type="string"/>
+        <property name="lastName" type="string"/>
+    </transfer>
+
+    <transfer name="UserCriteria">
+        <property name="userConditions" type="UserConditions" strict="true"/>
+    </transfer>
+
+    <transfer name="UserConditions" strict="true">
+        <property name="userIds" type="int[]" singular="idUser"/>
+    </transfer>
+
+    <transfer name="UserCollection" strict="true">
+        <property name="users" type="User[]" singular="user"/>
     </transfer>
 
     <transfer name="StateMachineItemState">
@@ -264,6 +284,17 @@
     </transfer>
 
     <transfer name="DataImporterDataSourceConfiguration">
+        <property name="importType" type="string"/>
+        <property name="moduleName" type="string"/>
+        <property name="fileName" type="string"/>
+    </transfer>
+
+    <transfer name="ActionConfirmation" strict="true">
+        <property name="title" type="string"/>
+        <property name="message" type="string"/>
+        <property name="confirmButtonLabel" type="string"/>
+        <property name="type" type="string"/>
+        <property name="translationParameters" type="array" singular="translationParameter" associative="true"/>
     </transfer>
 
 </transfers>

@@ -1,61 +1,50 @@
 {% extends '@Gui/Layout/layout.twig' %}
 
-{% set widget_title = 'Version ' ~ version %}
+{% block head_css %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ assetsPath('css/spryker-zed-workflow-main.css') }}">
+{% endblock %}
+
+{% set widget_title = 'Workflows' | trans %}
 {% block section_title %}
     {{ widget_title }}
     {% include '@Workflow/_partial/status-badge.twig' %}
 {% endblock %}
 
 {% block action %}
-    {# Edit clones this version into the create form, exactly like the versions table's Edit action,
-       so it asks for the same confirmation — saving always produces a NEW version. The origin travels
-       with it, so the editor's Back button leads where this page's own Back leads. #}
-    {% set editParameters = {'id-process': idStateMachineProcess, 'id-definition': idStateMachineProcessDefinition} %}
-    {% if backOrigin %}
-        {% set editParameters = editParameters|merge({'back': backOrigin}) %}
-    {% endif %}
-    <a class="btn btn-create"
-       href="{{ url('/workflow/version/create', editParameters) }}"
-       data-qa="workflow-version-edit"
-       data-confirm="1"
-       data-confirm-title="{{ 'Create an editable copy' | trans }}"
-       data-confirm-message="{{ 'You are about to create an editable copy of this workflow. Your changes are saved as a new version - the current one keeps running. Continue?' | trans }}"
-       data-confirm-button="{{ 'Continue' | trans }}">
-        <span class="material-symbols-outlined">edit</span> {{ 'Edit' | trans }}
+    <a class="btn btn-sm btn-back" href="{{ backLink.url }}">
+        <span class="material-symbols-outlined">chevron_left</span> {{ backLink.label | trans }}
     </a>
-    <a class="btn btn-back" href="{{ backUrl }}">
-        <span class="material-symbols-outlined">chevron_left</span> {{ backLabel | trans }}
+    {% set versionParameters = {'id-process': idStateMachineProcess, 'id-definition': idStateMachineProcessDefinition} %}
+    <a class="btn btn-sm"
+       href="{{ url('/workflow/version/create', versionParameters) }}"
+       data-qa="workflow-version-edit">
+        <span class="material-symbols-outlined">edit</span> {{ 'New version' | trans }}
     </a>
-    {% if isActive %}
-        {{ form_start(versionActivationForm, {action: url('/workflow/version/deactivate', {'id-definition': idStateMachineProcessDefinition}), method: 'POST', attr: {class: 'd-inline'}}) }}
-            <button type="submit" class="btn btn-danger">{{ 'Deactivate' | trans }}</button>
-        {{ form_end(versionActivationForm) }}
-    {% else %}
-        {{ form_start(versionActivationForm, {action: url('/workflow/version/activate', {'id-definition': idStateMachineProcessDefinition}), method: 'POST', attr: {class: 'd-inline'}}) }}
-            <button type="submit" class="btn btn-primary">{{ 'Activate' | trans }}</button>
-        {{ form_end(versionActivationForm) }}
-    {% endif %}
-{% endblock %}
-
-{% block head_css %}
-    {{ parent() }}
-    <link rel="stylesheet" href="{{ assetsPath('css/spryker-zed-workflow-main.css') }}">
+    <a class="btn btn-sm btn-outline"
+       href="{{ url('/workflow/version', versionParameters) }}"
+       data-qa="workflow-version-list">
+        <span class="material-symbols-outlined">history</span> {{ 'Versions' | trans }}
+    </a>
+    {{ form_start(processActivationForm, {action: processStatusChangeUrl, method: 'POST', attr: {class: 'd-inline'}}) }}
+        <button type="submit" class="btn btn-sm{{ isProcessActive ? ' btn-danger' }}"
+                data-qa="{{ isProcessActive ? 'workflow-process-deactivate' : 'workflow-process-activate' }}"
+                data-confirm="1"
+                data-confirm-title="{{ processStatusConfirmation.title | trans(processStatusConfirmation.translationParameters) }}"
+                data-confirm-message="{{ processStatusConfirmation.message | trans(processStatusConfirmation.translationParameters) }}"
+                data-confirm-button="{{ processStatusConfirmation.confirmButtonLabel | trans }}"
+                data-confirm-type="{{ processStatusConfirmation.type }}">{{ processStatusConfirmation.confirmButtonLabel | trans }}</button>
+    {{ form_end(processActivationForm) }}
 {% endblock %}
 
 {% block content %}
     {% embed '@Gui/Partials/widget.twig' with { widget_title: 'Workflow graph' | trans } %}
+        {% block widget_title_wrapper %}{% endblock %}
         {% block widget_content %}
-            <div class="workflow-parent-context m-b-md">
-                <span class="text-muted">
-                    <span class="material-symbols-outlined align-middle">flowchart</span> {{ 'Workflow' | trans }}
-                </span>
-                <span class="label label-info m-l-xs">{{ processName }}</span>
-                <span class="text-muted m-l-sm">{{ 'Version' | trans }}</span>
-                <span class="label label-default m-l-xs">{{ version }}</span>
-                <span class="text-muted m-l-sm">{{ 'Status' | trans }}</span>
-                <span class="badge {{ isActive ? 'badge-outline-success' : 'badge-outline-dark' }} m-l-xs"
-                      data-qa="workflow-version-status">{{ status | trans }}</span>
-            </div>
+            {% include '@Workflow/_partial/workflow-information.twig' with {
+                editModeEnabled: true,
+            } %}
+            {% include '@Workflow/_partial/process-edit-form.twig' %}
 
             {# Unlike the server-drawn graph image this replaced, the read-only builder renders an
                invalid definition too — which is exactly when the errors below need looking at. #}
@@ -64,16 +53,16 @@
                     {{ 'This version is not valid yet. Fix the issues below, then save a new version. The definition is validated again when you activate it.' | trans }}
                 </div>
                 {% if validationErrors is not empty %}
-                    <div class="alert alert-danger" data-qa="workflow-version-validation-errors">
+                    <div class="alert d-block alert-danger" data-qa="workflow-version-validation-errors">
                         <strong>{{ 'The definition has the following errors:' | trans }}</strong>
                         <ul class="m-t-sm m-b-none">
                             {% for error in validationErrors %}
                                 <li data-qa="workflow-version-validation-error">
                                     {{ error.message | trans }}
                                     {% if error.stateName %}
-                                        <span class="text-muted">({{ 'State' | trans }}: {{ error.stateName }})</span>
+                                        <span>({{ 'State' | trans }}: {{ error.stateName }})</span>
                                     {% elseif error.eventName %}
-                                        <span class="text-muted">({{ 'Event' | trans }}: {{ error.eventName }})</span>
+                                        <span>({{ 'Event' | trans }}: {{ error.eventName }})</span>
                                     {% endif %}
                                 </li>
                             {% endfor %}
@@ -82,6 +71,7 @@
                 {% endif %}
             {% endif %}
 
+            <h5>{{ 'Version' | trans }} {{ version }}</h5>
             {% include '@Workflow/_partial/state-machine-builder.twig' with {
                 readOnly: true,
                 definition: definition,
@@ -91,7 +81,13 @@
         {% endblock %}
     {% endembed %}
 
-    {% include '@Workflow/_partial/action-confirmation-modal.twig' %}
+    {% embed '@Gui/Partials/widget.twig' with { widget_title: 'Workflow activity' | trans } %}
+        {% block widget_content %}
+            <div data-qa="workflow-activity">
+                {{ instanceTable | raw }}
+            </div>
+        {% endblock %}
+    {% endembed %}
 {% endblock %}
 
 {% block footer_js %}

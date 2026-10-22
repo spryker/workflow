@@ -39,6 +39,7 @@ use Spryker\Zed\Workflow\Business\Validator\DefinitionValidatorInterface;
 use Spryker\Zed\Workflow\Business\Validator\Rule\DefinitionValidationRuleInterface;
 use Spryker\Zed\Workflow\Business\Validator\Rule\DuplicateStateRule;
 use Spryker\Zed\Workflow\Business\Validator\Rule\EventRule;
+use Spryker\Zed\Workflow\Business\Validator\Rule\EventTimeoutRule;
 use Spryker\Zed\Workflow\Business\Validator\Rule\InitialStateRule;
 use Spryker\Zed\Workflow\Business\Validator\Rule\ProcessNameMatchRule;
 use Spryker\Zed\Workflow\Business\Validator\Rule\RequiredElementsRule;
@@ -157,9 +158,31 @@ class WorkflowBusinessFactory extends AbstractBusinessFactory
             $this->createRequiredElementsRule(),
             $this->createDuplicateStateRule(),
             $this->createEventRule(),
+            $this->createEventTimeoutRule(),
             $this->createInitialStateRule(),
             $this->createTransitionRule(),
             $this->createProcessNameMatchRule(),
+        ];
+    }
+
+    public function createDefinitionCreationValidator(): DefinitionValidatorInterface
+    {
+        return new DefinitionValidator(
+            $this->getRepository(),
+            $this->getDefinitionCreationValidationRules(),
+        );
+    }
+
+    /**
+     * @return array<\Spryker\Zed\Workflow\Business\Validator\Rule\DefinitionValidationRuleInterface>
+     */
+    public function getDefinitionCreationValidationRules(): array
+    {
+        return [
+            $this->createRequiredElementsRule(),
+            $this->createProcessNameMatchRule(),
+            $this->createDuplicateStateRule(),
+            $this->createEventTimeoutRule(),
         ];
     }
 
@@ -176,6 +199,11 @@ class WorkflowBusinessFactory extends AbstractBusinessFactory
     public function createEventRule(): DefinitionValidationRuleInterface
     {
         return new EventRule($this->createPluginRegistry());
+    }
+
+    public function createEventTimeoutRule(): DefinitionValidationRuleInterface
+    {
+        return new EventTimeoutRule();
     }
 
     public function createInitialStateRule(): DefinitionValidationRuleInterface
@@ -198,6 +226,9 @@ class WorkflowBusinessFactory extends AbstractBusinessFactory
         return new ProcessWriter(
             $this->getEntityManager(),
             $this->createStateMachineProcessExistenceReader(),
+            $this->createDefinitionWriter(),
+            $this->createTriggerWriter(),
+            $this->createDefinitionCreationValidator(),
         );
     }
 
@@ -213,6 +244,7 @@ class WorkflowBusinessFactory extends AbstractBusinessFactory
             $this->getRepository(),
             $this->createDefinitionValidator(),
             $this->createTransitionFlagExpander(),
+            $this->createDefinitionCreationValidator(),
         );
     }
 

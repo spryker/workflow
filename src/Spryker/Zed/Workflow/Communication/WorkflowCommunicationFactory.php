@@ -7,27 +7,37 @@
 
 namespace Spryker\Zed\Workflow\Communication;
 
+use Generated\Shared\Transfer\StateMachineProcessTransfer;
 use Orm\Zed\StateMachine\Persistence\SpyStateMachineProcessQuery;
 use Orm\Zed\Workflow\Persistence\SpyStateMachineProcessDefinitionInstanceQuery;
 use Orm\Zed\Workflow\Persistence\SpyStateMachineProcessDefinitionQuery;
-use Orm\Zed\Workflow\Persistence\SpyStateMachineProcessDefinitionTriggerQuery;
 use Spryker\Zed\Kernel\Communication\AbstractCommunicationFactory;
 use Spryker\Zed\StateMachine\Business\StateMachineFacadeInterface;
+use Spryker\Zed\User\Business\UserFacadeInterface;
+use Spryker\Zed\Workflow\Communication\Builder\ProcessStatusConfirmationBuilder;
+use Spryker\Zed\Workflow\Communication\Builder\ProcessStatusConfirmationBuilderInterface;
+use Spryker\Zed\Workflow\Communication\Form\DataProvider\ProcessEditFormDataProvider;
+use Spryker\Zed\Workflow\Communication\Form\DataProvider\ProcessFormDataProvider;
+use Spryker\Zed\Workflow\Communication\Form\InstanceEventTriggerForm;
 use Spryker\Zed\Workflow\Communication\Form\ProcessActivationForm;
+use Spryker\Zed\Workflow\Communication\Form\ProcessEditForm;
 use Spryker\Zed\Workflow\Communication\Form\ProcessForm;
-use Spryker\Zed\Workflow\Communication\Form\TriggerForm;
 use Spryker\Zed\Workflow\Communication\Form\VersionActivationForm;
 use Spryker\Zed\Workflow\Communication\Form\VersionDeleteForm;
 use Spryker\Zed\Workflow\Communication\Form\VersionForm;
+use Spryker\Zed\Workflow\Communication\Mapper\ProcessFormDataMapper;
+use Spryker\Zed\Workflow\Communication\Mapper\ProcessFormDataMapperInterface;
+use Spryker\Zed\Workflow\Communication\Reader\AvailablePluginReader;
+use Spryker\Zed\Workflow\Communication\Reader\AvailablePluginReaderInterface;
 use Spryker\Zed\Workflow\Communication\Reader\StateMachineProcessReader;
 use Spryker\Zed\Workflow\Communication\Reader\StateMachineProcessReaderInterface;
 use Spryker\Zed\Workflow\Communication\Reader\StateMachineProcessVersionReader;
 use Spryker\Zed\Workflow\Communication\Reader\StateMachineProcessVersionReaderInterface;
+use Spryker\Zed\Workflow\Communication\Reader\TriggerLabelReader;
+use Spryker\Zed\Workflow\Communication\Reader\TriggerLabelReaderInterface;
 use Spryker\Zed\Workflow\Communication\Table\InstanceTable;
 use Spryker\Zed\Workflow\Communication\Table\ProcessTable;
 use Spryker\Zed\Workflow\Communication\Table\VersionTable;
-use Spryker\Zed\Workflow\Communication\Trigger\Mapper\TriggerMapper;
-use Spryker\Zed\Workflow\Communication\Trigger\Mapper\TriggerMapperInterface;
 use Spryker\Zed\Workflow\WorkflowDependencyProvider;
 use Symfony\Component\Form\FormInterface;
 
@@ -42,9 +52,9 @@ class WorkflowCommunicationFactory extends AbstractCommunicationFactory
     {
         return new ProcessTable(
             $this->getStateMachineProcessPropelQuery(),
-            $this->getStateMachineProcessDefinitionTriggerPropelQuery(),
             $this->getStateMachineProcessDefinitionPropelQuery(),
-            $this->getFacade(),
+            $this->createTriggerLabelReader(),
+            $this->createProcessStatusConfirmationBuilder(),
         );
     }
 
@@ -57,13 +67,15 @@ class WorkflowCommunicationFactory extends AbstractCommunicationFactory
         );
     }
 
-    public function createInstanceTable(int $idStateMachineProcessDefinition): InstanceTable
-    {
+    public function createInstanceTable(
+        StateMachineProcessTransfer $stateMachineProcessTransfer,
+        int $idBackStateMachineProcessDefinition
+    ): InstanceTable {
         return new InstanceTable(
             $this->getStateMachineProcessDefinitionInstancePropelQuery(),
             $this->getStateMachineFacade(),
-            $this->getFacade(),
-            $idStateMachineProcessDefinition,
+            $stateMachineProcessTransfer,
+            $idBackStateMachineProcessDefinition,
         );
     }
 
@@ -82,11 +94,6 @@ class WorkflowCommunicationFactory extends AbstractCommunicationFactory
         return $this->getProvidedDependency(WorkflowDependencyProvider::PROPEL_QUERY_STATE_MACHINE_PROCESS_DEFINITION_INSTANCE);
     }
 
-    public function getStateMachineProcessDefinitionTriggerPropelQuery(): SpyStateMachineProcessDefinitionTriggerQuery
-    {
-        return $this->getProvidedDependency(WorkflowDependencyProvider::PROPEL_QUERY_STATE_MACHINE_PROCESS_DEFINITION_TRIGGER);
-    }
-
     /**
      * @param array<string, mixed> $data
      * @param array<string, mixed> $options
@@ -100,23 +107,28 @@ class WorkflowCommunicationFactory extends AbstractCommunicationFactory
      * @param array<string, mixed> $data
      * @param array<string, mixed> $options
      */
-    public function createVersionForm(array $data = [], array $options = []): FormInterface
+    public function createProcessEditForm(array $data = [], array $options = []): FormInterface
     {
-        return $this->getFormFactory()->create(VersionForm::class, $data, $options);
+        return $this->getFormFactory()->create(ProcessEditForm::class, $data, $options);
+    }
+
+    public function createProcessFormDataProvider(): ProcessFormDataProvider
+    {
+        return new ProcessFormDataProvider($this->getFacade());
     }
 
     /**
      * @param array<string, mixed> $data
      * @param array<string, mixed> $options
      */
-    public function createTriggerForm(array $data = [], array $options = []): FormInterface
+    public function createVersionForm(array $data = [], array $options = []): FormInterface
     {
-        return $this->getFormFactory()->create(TriggerForm::class, $data, $options);
+        return $this->getFormFactory()->create(VersionForm::class, $data, $options);
     }
 
-    public function createTriggerMapper(): TriggerMapperInterface
+    public function createProcessEditFormDataProvider(): ProcessEditFormDataProvider
     {
-        return new TriggerMapper();
+        return new ProcessEditFormDataProvider($this->getFacade());
     }
 
     public function createStateMachineProcessReader(): StateMachineProcessReaderInterface
@@ -124,9 +136,29 @@ class WorkflowCommunicationFactory extends AbstractCommunicationFactory
         return new StateMachineProcessReader($this->getFacade());
     }
 
+    public function createTriggerLabelReader(): TriggerLabelReaderInterface
+    {
+        return new TriggerLabelReader($this->getFacade());
+    }
+
+    public function createAvailablePluginReader(): AvailablePluginReaderInterface
+    {
+        return new AvailablePluginReader($this->getFacade());
+    }
+
+    public function createProcessStatusConfirmationBuilder(): ProcessStatusConfirmationBuilderInterface
+    {
+        return new ProcessStatusConfirmationBuilder();
+    }
+
+    public function createProcessFormDataMapper(): ProcessFormDataMapperInterface
+    {
+        return new ProcessFormDataMapper($this->getUserFacade());
+    }
+
     public function createStateMachineProcessVersionReader(): StateMachineProcessVersionReaderInterface
     {
-        return new StateMachineProcessVersionReader($this->getFacade());
+        return new StateMachineProcessVersionReader($this->getFacade(), $this->getUserFacade());
     }
 
     public function createProcessActivationForm(): FormInterface
@@ -139,6 +171,14 @@ class WorkflowCommunicationFactory extends AbstractCommunicationFactory
         return $this->getFormFactory()->create(VersionActivationForm::class);
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function createInstanceEventTriggerForm(array $options = []): FormInterface
+    {
+        return $this->getFormFactory()->create(InstanceEventTriggerForm::class, null, $options);
+    }
+
     public function createVersionDeleteForm(): FormInterface
     {
         return $this->getFormFactory()->create(VersionDeleteForm::class);
@@ -147,5 +187,10 @@ class WorkflowCommunicationFactory extends AbstractCommunicationFactory
     public function getStateMachineFacade(): StateMachineFacadeInterface
     {
         return $this->getProvidedDependency(WorkflowDependencyProvider::FACADE_STATE_MACHINE);
+    }
+
+    public function getUserFacade(): UserFacadeInterface
+    {
+        return $this->getProvidedDependency(WorkflowDependencyProvider::FACADE_USER);
     }
 }

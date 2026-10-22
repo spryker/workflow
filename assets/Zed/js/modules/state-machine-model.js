@@ -7,11 +7,6 @@
  * own data. Entities are referenced by stable internal ids, not by names, so renaming or deleting
  * a state cannot leave dangling references (the initial state and transitions point at ids).
  *
- * Each transition owns its own event entity, referenced by id. Events are treated as one-time in
- * the builder (not reused across transitions), so the event's fields (name, type, timeout,
- * command) belong to that single transition. The `state-machine-01` XML still emits one `<event>`
- * per distinct name, which is what serialization produces from these per-transition events.
- *
  * Shape:
  *   states:      [ { id, name, display } ]
  *   events:      [ { id, name, eventType: ''|'onEnter'|'manual'|'timeout', timeout, command } ]
@@ -110,7 +105,7 @@ class StateMachineModel {
     /**
      * Rolls the model back one step.
      *
-     * @returns {{operation: string, focus: {kind: string, id: string}|null}|null} what was reverted,
+     * @returns {{operation: string, focus: {kind: 'state'|'transition', id: string}|null}|null}
      *   or null when there was nothing left to undo
      */
     undo() {
@@ -196,7 +191,6 @@ class StateMachineModel {
      *
      * @param {string} sourceId
      *
-     * @returns {{state: Object, transition: Object}|null} null when the source state is gone
      */
     addConnectedState(sourceId) {
         if (!this.getState(sourceId)) {
@@ -228,6 +222,10 @@ class StateMachineModel {
         }
 
         return candidate;
+    }
+
+    isStateNameTaken(id, name) {
+        return this.states.some((state) => state.id !== id && state.name === name);
     }
 
     renameState(id, name) {
@@ -320,7 +318,6 @@ class StateMachineModel {
      * @param {string} sourceId
      * @param {string} targetId
      *
-     * @returns {Object} the created transition
      */
     addTransition(sourceId, targetId) {
         const id = this.nextId('t');
@@ -342,8 +339,6 @@ class StateMachineModel {
      * @param {string} targetId
      * @param {string|null} eventId
      * @param {string|null} id reuse an id already allocated for the undo snapshot key
-     *
-     * @returns {Object}
      */
     createTransition(sourceId, targetId, eventId, id) {
         return {
@@ -409,12 +404,6 @@ class StateMachineModel {
     }
 
     /**
-     * Sets the name of the given transition's event from free-text input. Events are treated as
-     * one-time (never reused across transitions), so the transition owns a dedicated event entity:
-     * an empty name detaches it (condition-only transition), while any other name renames the
-     * transition's own event, creating it the first time a name is typed. The event's other fields
-     * (type, timeout, command) are preserved across renames.
-     *
      * @param {string} transitionId
      * @param {string} name
      *
@@ -440,14 +429,39 @@ class StateMachineModel {
 
         const existingEvent = transition.eventId ? this.getEvent(transition.eventId) : null;
 
-        if (existingEvent) {
+        if (existingEvent && this.countTransitionsUsingEvent(existingEvent.id) === 1) {
             existingEvent.name = trimmedName;
-        } else {
-            const event = this.createEvent(trimmedName);
-            this.events.push(event);
-            transition.eventId = event.id;
+            this.notify();
+
+            return;
         }
 
+        const event = existingEvent ? { ...existingEvent, id: this.nextId('e') } : this.createEvent('');
+        event.name = trimmedName;
+        this.events.push(event);
+        transition.eventId = event.id;
+        this.notify();
+    }
+
+    linkTransitionEventByName(transitionId) {
+        const transition = this.getTransition(transitionId);
+        const transitionEvent = transition && transition.eventId ? this.getEvent(transition.eventId) : null;
+
+        if (!transitionEvent) {
+            return;
+        }
+
+        const namesakeEvent = this.events.find(
+            (event) => event.id !== transitionEvent.id && event.name === transitionEvent.name,
+        );
+
+        if (!namesakeEvent) {
+            return;
+        }
+
+        this.snapshot(`linkTransitionEvent:${transitionId}`, { kind: 'transition', id: transitionId });
+        transition.eventId = namesakeEvent.id;
+        this.pruneUnusedEvents();
         this.notify();
     }
 
@@ -483,9 +497,6 @@ class StateMachineModel {
     }
 
     /**
-     * The transition an event edit should point the user at. Events are one-time in the builder, so
-     * the first transition referencing the event is the one that owns it.
-     *
      * @param {string} eventId
      *
      * @returns {{kind: string, id: string}|null}

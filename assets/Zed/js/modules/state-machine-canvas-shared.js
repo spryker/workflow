@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * Visual tokens every canvas renderer draws with: state box metrics and the colour theme.
  *
@@ -9,36 +7,41 @@
  */
 
 // The narrowest a state box gets; a longer name widens it (see stateBoxWidth).
-const STATE_WIDTH = 176;
+export const STATE_WIDTH = 176;
 
-// Advance width of the 14px state label, the padding kept either side of it, and the point past
-// which a name is ellipsised instead of widening the box any further.
+export const STATE_LABEL_FONT_SIZE = 14;
+
 const STATE_CHARACTER_WIDTH = 7.6;
-const STATE_HORIZONTAL_PADDING = 24;
+export const STATE_HORIZONTAL_PADDING = 24;
 const STATE_MAXIMUM_WIDTH = 460;
 
 // Drawn before the initial state's name, and paid for in its width.
-const INITIAL_STATE_MARKER = '▶ ';
-const STATE_HEIGHT = 56;
-const STATE_CORNER_RADIUS = 8;
-const STATE_BORDER_WIDTH = 2;
+export const INITIAL_STATE_MARKER = '▶ ';
+export const STATE_HEIGHT = 56;
+export const STATE_CORNER_RADIUS = 8;
+export const STATE_BORDER_WIDTH = 2;
+export const STATE_ACCENT_WIDTH = 4;
 
-const HANDLE_RADIUS = 4;
+export const HANDLE_RADIUS = 4;
 
 // Round hover affordances rendered next to a state box: "+" on the right edge, delete above.
-const AFFORDANCE_RADIUS = 12;
-const AFFORDANCE_OFFSET = 24;
+export const AFFORDANCE_RADIUS = 12;
+export const AFFORDANCE_OFFSET = 24;
 
-const GRID_SIZE = 11;
+export const GRID_SIZE = 11;
 
 // Line spacing inside a transition label, which stacks the event name over its command, condition
 // and timeout detail lines.
-const LABEL_LINE_HEIGHT = 14;
+export const LABEL_LINE_HEIGHT = 14;
+
+// state-machine-transition-label.js estimates the label's size for these two sizes.
+export const LABEL_TITLE_FONT_SIZE = 12;
+export const LABEL_DETAIL_FONT_SIZE = 11;
 
 // A rubber-band drag shorter than this in both axes was a click that wobbled, not a drag.
-const RUBBER_BAND_MINIMUM_SIZE = 4;
+export const RUBBER_BAND_MINIMUM_SIZE = 4;
 
-const THEME = {
+export const THEME = {
     accent: '#2bbe9b',
     accentHover: '#00ab89',
     danger: '#ee343b',
@@ -71,26 +74,9 @@ const THEME = {
  *
  * @returns {number}
  */
-function stateBoxWidth(state, isInitial) {
+export function stateBoxWidth(state, isInitial) {
     const text = (isInitial ? INITIAL_STATE_MARKER : '') + String((state && state.name) || '');
     const wanted = Math.ceil(text.length * STATE_CHARACTER_WIDTH) + STATE_HORIZONTAL_PADDING * 2;
 
     return Math.min(Math.max(STATE_WIDTH, wanted), STATE_MAXIMUM_WIDTH);
 }
-
-module.exports = {
-    STATE_WIDTH,
-    STATE_HORIZONTAL_PADDING,
-    INITIAL_STATE_MARKER,
-    stateBoxWidth,
-    STATE_HEIGHT,
-    LABEL_LINE_HEIGHT,
-    STATE_CORNER_RADIUS,
-    STATE_BORDER_WIDTH,
-    HANDLE_RADIUS,
-    AFFORDANCE_RADIUS,
-    AFFORDANCE_OFFSET,
-    GRID_SIZE,
-    RUBBER_BAND_MINIMUM_SIZE,
-    THEME,
-};

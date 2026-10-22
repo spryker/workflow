@@ -7,9 +7,12 @@
 
 namespace Spryker\Zed\Workflow\Communication\Controller;
 
+use ArrayObject;
+use Generated\Shared\Transfer\StateMachineDefinitionValidationResponseTransfer;
 use Generated\Shared\Transfer\StateMachineProcessDefinitionTransfer;
 use Generated\Shared\Transfer\StateMachineProcessTransfer;
 use Spryker\Zed\Kernel\Communication\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * @method \Spryker\Zed\Workflow\Business\WorkflowFacadeInterface getFacade()
@@ -64,5 +67,43 @@ abstract class AbstractWorkflowController extends AbstractController
         }
 
         return $stateMachineProcessDefinitionTransfer;
+    }
+
+    /**
+     * @param \ArrayObject<int, \Generated\Shared\Transfer\ErrorTransfer> $errorTransfers
+     */
+    protected function redirectWithResult(ArrayObject $errorTransfers, string $successMessage, string $redirectUrl): RedirectResponse
+    {
+        $this->addErrorMessages($errorTransfers);
+
+        if ($errorTransfers->count() === 0) {
+            $this->addSuccessMessage($successMessage);
+        }
+
+        return $this->redirectResponse($redirectUrl);
+    }
+
+    /**
+     * @param \ArrayObject<int, \Generated\Shared\Transfer\ErrorTransfer> $errorTransfers
+     */
+    protected function addErrorMessages(ArrayObject $errorTransfers): void
+    {
+        foreach ($errorTransfers as $errorTransfer) {
+            $this->addErrorMessage($errorTransfer->getMessageOrFail());
+        }
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected function buildDefinitionValidationErrors(
+        StateMachineDefinitionValidationResponseTransfer $stateMachineDefinitionValidationResponseTransfer
+    ): array {
+        $validationErrors = [];
+        foreach ($stateMachineDefinitionValidationResponseTransfer->getErrors() as $stateMachineDefinitionValidationErrorTransfer) {
+            $validationErrors[] = $stateMachineDefinitionValidationErrorTransfer->toArray(true, true);
+        }
+
+        return $validationErrors;
     }
 }

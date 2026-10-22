@@ -7,16 +7,18 @@
 
 namespace Spryker\Zed\Workflow\Business\Validator;
 
+use ArrayObject;
 use Generated\Shared\Transfer\StateMachineDefinitionValidationResponseTransfer;
 use Generated\Shared\Transfer\StateMachineProcessDefinitionTransfer;
 
 interface DefinitionValidatorInterface
 {
-    /**
-     * Validates a single definition transfer, resolving subject type and process name from its owning
-     * process id, and returns its validation response. Validation is identical for every caller.
-     */
     public function validate(
         StateMachineProcessDefinitionTransfer $stateMachineProcessDefinitionTransfer
     ): StateMachineDefinitionValidationResponseTransfer;
+
+    /**
+     * @param \ArrayObject<int, \Generated\Shared\Transfer\StateMachineProcessDefinitionTransfer> $stateMachineProcessDefinitionTransfers
+     */
+    public function validateCollection(ArrayObject $stateMachineProcessDefinitionTransfers): StateMachineDefinitionValidationResponseTransfer;
 }

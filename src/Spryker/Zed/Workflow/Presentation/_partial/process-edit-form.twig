@@ -1,0 +1,27 @@
+{% set isProcessEditFormExpanded = processEditForm.vars.submitted and not processEditForm.vars.valid %}
+
+{% block process_edit_form %}
+    <div id="workflow-process-edit" class="collapse js-workflow-process-edit{{ isProcessEditFormExpanded ? ' show' : '' }} m-b-md" data-qa="workflow-process-edit">
+        {{ form_start(processEditForm, {'attr': {
+            'class': 'js-workflow-process-edit-form',
+            'data-qa': 'workflow-process-edit-form',
+            'data-saved-description': description | default(''),
+            'data-trigger-event-names': triggerEventNames | default([]) | json_encode,
+        }}) }}
+            {{ form_errors(processEditForm) }}
+            {{ form_row(processEditForm.description) }}
+            {{ form_row(processEditForm.triggers) }}
+
+            <button type="submit" class="btn btn-sm btn-primary" data-qa="workflow-process-edit-save">{{ 'Save details' | trans }}</button>
+            <button type="button"
+                    class="btn btn-sm btn-outline m-l-xs"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#workflow-process-edit"
+                    aria-controls="workflow-process-edit">
+                {{ 'Cancel' | trans }}
+            </button>
+            <span class="text-muted m-l-xs">{{ 'Applies to all versions' | trans }}</span>
+        {{ form_end(processEditForm) }}
+        <hr>
+    </div>
+{% endblock %}

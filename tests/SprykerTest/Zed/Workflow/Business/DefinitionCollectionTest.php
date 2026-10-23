@@ -190,7 +190,7 @@ class DefinitionCollectionTest extends Unit
     {
         // Arrange
         $stateMachineProcessDefinitionTransfer = (new StateMachineProcessDefinitionTransfer())
-            ->setStateMachineProcess((new StateMachineProcessTransfer())->setIdStateMachineProcess(PHP_INT_MAX))
+            ->setStateMachineProcess((new StateMachineProcessTransfer())->setIdStateMachineProcess(999999999))
             ->setInitialState('new')
             ->setDefinition(sprintf(WorkflowHelper::VALID_DEFINITION_TEMPLATE, 'any-process'));
 
@@ -202,7 +202,7 @@ class DefinitionCollectionTest extends Unit
         $this->assertValidationError(
             $stateMachineDefinitionValidationResponseTransfer,
             'process_not_found',
-            sprintf('The process with the ID "%d" does not exist.', PHP_INT_MAX),
+            sprintf('The process with the ID "%d" does not exist.', 999999999),
         );
     }
 

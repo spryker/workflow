@@ -261,7 +261,7 @@ class ProcessTable extends AbstractTable
 
     protected function createStatusLabel(string $status): string
     {
-        $labelClass = $status === WorkflowConfig::PROCESS_DEFINITION_STATUS_ACTIVE ? 'label-info' : 'label-default';
+        $labelClass = $status === WorkflowConfig::PROCESS_DEFINITION_STATUS_ACTIVE ? 'label-primary' : 'badge-outline-dark';
 
         return $this->generateLabel($status, $labelClass);
     }

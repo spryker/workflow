@@ -17,9 +17,12 @@ use Generated\Shared\Transfer\StateMachineProcessDefinitionConditionsTransfer;
 use Generated\Shared\Transfer\StateMachineProcessDefinitionCriteriaTransfer;
 use Generated\Shared\Transfer\StateMachineProcessDefinitionInstanceConditionsTransfer;
 use Generated\Shared\Transfer\StateMachineProcessDefinitionInstanceCriteriaTransfer;
+use Generated\Shared\Transfer\StateMachineProcessDefinitionInstanceTransfer;
 use Generated\Shared\Transfer\StateMachineProcessDefinitionTransfer;
 use Generated\Shared\Transfer\StateMachineProcessTransfer;
 use Spryker\Zed\StateMachine\Business\StateMachineFacadeInterface;
+use Spryker\Zed\StateMachine\StateMachineDependencyProvider;
+use Spryker\Zed\Workflow\Communication\Plugin\StateMachine\WorkflowHandlerResolverPlugin;
 use Spryker\Zed\Workflow\WorkflowDependencyProvider;
 use SprykerTest\Zed\Workflow\WorkflowBusinessTester;
 
@@ -44,6 +47,16 @@ class EngineTriggerTest extends Unit
      * @var string
      */
     protected const EVENT_NAME = 'e2e.engine.start';
+
+    /**
+     * @uses \SprykerTest\Zed\Workflow\Helper\WorkflowHelper::VALID_DEFINITION_TEMPLATE
+     */
+    protected const string MANUAL_EVENT_NAME = 'log-it';
+
+    /**
+     * @uses \SprykerTest\Zed\Workflow\Helper\WorkflowHelper::VALID_DEFINITION_TEMPLATE
+     */
+    protected const string FINAL_STATE_NAME = 'logged';
 
     protected WorkflowBusinessTester $tester;
 
@@ -170,6 +183,38 @@ class EngineTriggerTest extends Unit
             'No running instance with a current state found for this version.',
             $stateMachineEventTriggerResponseTransfer->getErrors()->getIterator()->current()->getMessage(),
         );
+    }
+
+    public function testGivenARunningInstanceWhenTriggerStateMachineInstanceEventOnTheRealEngineThenStateAdvancesAndInstanceIsFinished(): void
+    {
+        // Arrange
+        $stateMachineProcessTransfer = $this->haveActiveProcessWithTrigger();
+        $this->tester->setDependency(
+            StateMachineDependencyProvider::PLUGINS_STATE_MACHINE_HANDLER_RESOLVER,
+            [new WorkflowHandlerResolverPlugin()],
+        );
+        $this->tester->getFacade()->startStateMachineInstance(
+            (new StateMachineEventTriggerRequestTransfer())
+                ->setEventName(static::EVENT_NAME)
+                ->setIdentifier(static::IDENTIFIER),
+        );
+        $stateMachineProcessDefinitionTransfer = $this->findActiveDefinitionForProcess($stateMachineProcessTransfer);
+
+        // Act
+        $stateMachineEventTriggerResponseTransfer = $this->tester->getFacade()->triggerStateMachineInstanceEvent(
+            (new StateMachineEventTriggerRequestTransfer())
+                ->setEventName(static::MANUAL_EVENT_NAME)
+                ->setIdentifier(static::IDENTIFIER)
+                ->setStateMachineProcessDefinition($stateMachineProcessDefinitionTransfer),
+        );
+
+        // Assert
+        $this->assertCount(0, $stateMachineEventTriggerResponseTransfer->getErrors());
+        $this->assertSame(1, $stateMachineEventTriggerResponseTransfer->getAffectedItemCount());
+
+        $stateMachineProcessDefinitionInstanceTransfer = $this->findInstanceWithStateForDefinition($stateMachineProcessDefinitionTransfer, static::IDENTIFIER);
+        $this->assertSame(static::FINAL_STATE_NAME, $stateMachineProcessDefinitionInstanceTransfer->getStateMachineItemStateOrFail()->getName());
+        $this->assertNotNull($stateMachineProcessDefinitionInstanceTransfer->getFinishedAt());
     }
 
     public function testCheckDynamicConditionsSumsEngineAffectedCountPerStateMachine(): void
@@ -340,6 +385,21 @@ class EngineTriggerTest extends Unit
                         ->addIdentifier($identifier),
                 ),
         )->getStateMachineProcessDefinitionInstances()->count();
+    }
+
+    protected function findInstanceWithStateForDefinition(
+        StateMachineProcessDefinitionTransfer $stateMachineProcessDefinitionTransfer,
+        int $identifier
+    ): StateMachineProcessDefinitionInstanceTransfer {
+        return $this->tester->getFacade()->getStateMachineProcessDefinitionInstanceCollection(
+            (new StateMachineProcessDefinitionInstanceCriteriaTransfer())
+                ->setStateMachineProcessDefinitionInstanceConditions(
+                    (new StateMachineProcessDefinitionInstanceConditionsTransfer())
+                        ->addIdStateMachineProcessDefinition($stateMachineProcessDefinitionTransfer->getIdStateMachineProcessDefinitionOrFail())
+                        ->addIdentifier($identifier)
+                        ->setWithStateMachineItemState(true),
+                ),
+        )->getStateMachineProcessDefinitionInstances()->getIterator()->current();
     }
 
     protected function countInstancesForDefinition(StateMachineProcessDefinitionTransfer $stateMachineProcessDefinitionTransfer, int $identifier): int
